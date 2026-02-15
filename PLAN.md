@@ -4,17 +4,17 @@ Track your progress here. Check off tasks as you complete them.
 Reference this file at the start of each Cursor session to know where you are.
 
 ## Current Status
-- **Phase**: 1 — Project Setup
-- **Current Task**: TASK 3
-- **Last Completed**: TASK 2
+- **Phase**: 1 — Project Setup (Complete)
+- **Current Task**: TASK 5
+- **Last Completed**: TASK 4
 
 ---
 
 ## Phase 1: Project Setup
 - [x] TASK 1 — Create Laravel 12 project + push to GitHub
 - [x] TASK 2 — Tailwind CSS + base layout
-- [ ] TASK 3 — Landing page with URL input form
-- [ ] TASK 4 — FeedReport model + migration
+- [x] TASK 3 — Landing page with URL input form
+- [x] TASK 4 — FeedReport model + migration
 
 ## Phase 2: Feed Fetching & Parsing
 - [ ] TASK 5 — FeedFetcher service
@@ -54,3 +54,4 @@ Reference this file at the start of each Cursor session to know where you are.
 
 ## Notes
 - **TASK 1**: Restarted with clean Laravel 12 install (no starter kit). Added Tailwind CSS 4, Alpine.js, and Pest PHP. Previous Livewire starter kit had unnecessary auth/Flux/Fortify scaffolding.
+- **TASK 4**: Created FeedReport model with ULID primary key, JSON casting for results, auto-generated slug on creation, and route-model binding via slug. Migration includes index on feed_url for lookup performance.
