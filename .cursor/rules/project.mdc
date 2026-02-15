@@ -44,6 +44,7 @@ Full specification is in @SPEC.md — read it before implementing any task.
 - Main branch: `main`
 - In this phase since we don't have other collaborators, commit and push to `main` directly
 - Commit messages: conventional commits (feat:, fix:, refactor:, test:, docs:)
+- Update PLAN.md whenever Task is finished
 
 ## Constraints — Do NOT
 - Add authentication or user accounts
