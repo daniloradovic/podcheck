@@ -1,0 +1,54 @@
+---
+description: Testing conventions using Pest PHP. Apply when writing or editing test files.
+globs: "tests/**/*.php"
+alwaysApply: false
+---
+
+# Pest PHP Testing Conventions
+
+## Structure
+Tests mirror the app/ directory structure under tests/Unit/ and tests/Feature/.
+
+## Syntax
+Use `describe()` + `it()` — never `test()`:
+```php
+<?php
+
+declare(strict_types=1);
+
+use App\Services\Checks\CheckResult;
+use App\Services\Checks\ChannelChecks\ArtworkCheck;
+
+describe('ArtworkCheck', function () {
+    it('passes when artwork meets Apple specifications', function () {
+        $xml = simplexml_load_string(
+            file_get_contents(base_path('tests/Fixtures/valid-feed.xml'))
+        );
+        $check = new ArtworkCheck();
+
+        $result = $check->run($xml);
+
+        expect($result->status)->toBe('pass');
+    });
+
+    it('fails when artwork is missing', function () {
+        $xml = simplexml_load_string(
+            file_get_contents(base_path('tests/Fixtures/feed-no-artwork.xml'))
+        );
+        $check = new ArtworkCheck();
+
+        $result = $check->run($xml);
+
+        expect($result->status)->toBe('fail')
+            ->and($result->suggestion)->not->toBeEmpty();
+    });
+});
+```
+
+## Rules
+- Use `expect()` assertions, not `assert*()`
+- Follow Arrange-Act-Assert pattern
+- XML test fixtures go in `tests/Fixtures/`
+- Every check needs minimum: one pass case, one fail case
+- Always verify suggestion message exists on failures
+- Feature tests go in tests/Feature/, unit tests in tests/Unit/

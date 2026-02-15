@@ -1,0 +1,31 @@
+---
+description: Workflow for implementing tasks from the spec. Use when user says "task", "implement", "build", "next task", or references a task number.
+globs:
+alwaysApply: false
+---
+
+# Task Implementation Workflow
+
+When asked to implement a task:
+
+1. **Read the spec first**: Open @SPEC.md and find the specific task referenced
+2. **Check existing patterns**: Before writing new code, look at existing files in the same directory for patterns to follow
+3. **Create a feature branch**: `git checkout -b feature/task-description`
+4. **Implement the task**: Follow the architecture and patterns from project rules
+5. **Write tests**: Every new service/check gets Pest tests (see testing rules)
+6. **Run tests**: `php artisan test` — make sure nothing is broken
+7. **Commit**: Use conventional commit format
+
+## When implementing a validation check specifically:
+1. Read `app/Services/Checks/CheckInterface.php` for the contract
+2. Look at existing checks in the same directory for the pattern
+3. Create the check class following the same structure
+4. The check MUST return a CheckResult value object
+5. Include a clear, actionable suggestion string for failures
+6. Write Pest tests with at least one pass and one fail case
+7. Register the check in FeedValidator's check array
+
+## Important
+- Don't implement multiple tasks at once — one task per session
+- Don't modify existing checks or tests unless the task specifically requires it
+- Ask for clarification if the task description is ambiguous

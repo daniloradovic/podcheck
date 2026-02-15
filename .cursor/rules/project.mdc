@@ -1,0 +1,53 @@
+---
+description: Core project context for PodCheck
+globs:
+alwaysApply: true
+---
+
+# PodCheck — Podcast RSS Feed Health Checker
+
+Web tool where podcasters paste an RSS feed URL and get an instant health report.
+Full specification is in @SPEC.md — read it before implementing any task.
+
+## Tech Stack
+- Backend: Laravel 12, PHP 8.3+
+- Frontend: Blade + Alpine.js + Tailwind CSS 4 (via Vite)
+- Database: SQLite (dev), MySQL (prod)
+- Cache: File cache for MVP
+- Testing: Pest PHP
+
+## Key Commands
+- `php artisan serve` — dev server
+- `npm run dev` — Vite dev server
+- `php artisan test` — run all tests
+- `php artisan test --filter=ChannelChecks` — run specific group
+- `php artisan migrate:fresh --seed` — reset database
+
+## Architecture
+- `app/Services/FeedFetcher.php` — fetches and parses RSS XML
+- `app/Services/FeedValidator.php` — orchestrates all checks
+- `app/Services/Checks/` — individual validation checks (one class per check)
+- `app/Services/Checks/CheckInterface.php` — contract all checks implement
+- `app/Services/Checks/CheckResult.php` — value object for results
+- `app/Services/Scoring/` — health + SEO scoring logic
+- `app/Models/FeedReport.php` — stored report with results JSON
+
+## Code Style
+- Follow Laravel conventions (PSR-12)
+- `declare(strict_types=1);` in every PHP file
+- Type hints on ALL method parameters and return types
+- Use value objects for check results, not arrays
+- Services use constructor injection — never use facades in service classes
+- Controllers are thin — all logic lives in services
+
+## Git Workflow
+- Main branch: `main`
+- Feature branches: `feature/task-description`
+- Commit messages: conventional commits (feat:, fix:, refactor:, test:, docs:)
+
+## Constraints — Do NOT
+- Add authentication or user accounts
+- Add payment or subscriptions
+- Over-engineer — MVP first, refine later
+- Use facades in service classes
+- Create API endpoints — web only for MVP

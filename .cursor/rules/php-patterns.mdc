@@ -1,0 +1,90 @@
+---
+description: PHP coding patterns for PodCheck Laravel project. Apply when writing or editing PHP files.
+globs: "*.php"
+alwaysApply: false
+---
+
+# PHP Patterns
+
+## File Header
+Every PHP file starts with:
+```php
+<?php
+
+declare(strict_types=1);
+```
+
+## Service Classes
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+class ServiceName
+{
+    public function __construct(
+        // Inject dependencies via constructor, never facades
+    ) {}
+
+    public function methodName(TypedParam $param): ReturnType
+    {
+        // Implementation
+    }
+}
+```
+
+## Validation Checks
+Each check implements CheckInterface:
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Checks\ChannelChecks;
+
+use App\Services\Checks\CheckInterface;
+use App\Services\Checks\CheckResult;
+use SimpleXMLElement;
+
+class ExampleCheck implements CheckInterface
+{
+    public function name(): string
+    {
+        return 'Example Check';
+    }
+
+    public function category(): string
+    {
+        return 'compliance'; // compliance|technical|seo|best-practices
+    }
+
+    public function severity(): string
+    {
+        return 'error'; // error|warning|info
+    }
+
+    public function run(SimpleXMLElement $feed): CheckResult
+    {
+        // Register iTunes namespace
+        $itunes = $feed->channel->children('http://www.itunes.apple.com/dtds/podcast-1.0.dtd');
+
+        // Check logic here
+
+        return new CheckResult(
+            status: 'pass', // pass|warn|fail
+            message: 'What happened',
+            suggestion: 'How to fix it (empty string if passed)',
+        );
+    }
+}
+```
+
+## Key Technical Notes
+- iTunes namespace URI: `http://www.itunes.apple.com/dtds/podcast-1.0.dtd`
+- Follow redirects up to 3 times when fetching feeds
+- Set 5-second timeout on remote image checks via getimagesize()
+- Episode checks only run against first 10 episodes for performance
+- Feed XML is parsed once and passed to all checks — never re-fetch
+- Throw specific exceptions, not generic ones

@@ -1,0 +1,42 @@
+---
+description: Frontend patterns for Blade templates with Alpine.js and Tailwind CSS. Apply when editing Blade or frontend files.
+globs: "resources/views/**/*.blade.php"
+alwaysApply: false
+---
+
+# Frontend Patterns
+
+## Stack
+- Blade templates for HTML
+- Alpine.js for interactivity (expand/collapse, loading states, form handling)
+- Tailwind CSS 4 for styling — utility classes only, no custom CSS files
+
+## Layout
+All pages extend `layouts/app.blade.php`:
+```blade
+@extends('layouts.app')
+
+@section('title', 'Page Title')
+
+@section('content')
+    <!-- Page content -->
+@endsection
+```
+
+## Alpine.js Usage
+Use `x-data`, `x-show`, `x-on` for interactive elements:
+```blade
+<div x-data="{ expanded: false }">
+    <button x-on:click="expanded = !expanded">Toggle</button>
+    <div x-show="expanded" x-transition>
+        <!-- Expandable content -->
+    </div>
+</div>
+```
+
+## Design Principles
+- Clean, professional, minimal — not flashy
+- Score badge: circular, color-coded (green 80+, yellow 50-79, red <50)
+- Check results: clear pass/warn/fail icons with expandable details
+- Mobile responsive
+- Accessible: proper labels, contrast ratios, semantic HTML
