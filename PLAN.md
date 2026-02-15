@@ -5,14 +5,14 @@ Reference this file at the start of each Cursor session to know where you are.
 
 ## Current Status
 - **Phase**: 1 — Project Setup
-- **Current Task**: TASK 1
-- **Last Completed**: None yet
+- **Current Task**: TASK 3
+- **Last Completed**: TASK 2
 
 ---
 
 ## Phase 1: Project Setup
-- [ ] TASK 1 — Create Laravel 12 project + push to GitHub
-- [ ] TASK 2 — Tailwind CSS + base layout
+- [x] TASK 1 — Create Laravel 12 project + push to GitHub
+- [x] TASK 2 — Tailwind CSS + base layout
 - [ ] TASK 3 — Landing page with URL input form
 - [ ] TASK 4 — FeedReport model + migration
 
@@ -53,4 +53,4 @@ Reference this file at the start of each Cursor session to know where you are.
 ---
 
 ## Notes
-_Add notes here as you go — decisions made, things you changed, blockers._
+- **TASK 1**: Restarted with clean Laravel 12 install (no starter kit). Added Tailwind CSS 4, Alpine.js, and Pest PHP. Previous Livewire starter kit had unnecessary auth/Flux/Fortify scaffolding.
