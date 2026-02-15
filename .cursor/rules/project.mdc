@@ -42,7 +42,7 @@ Full specification is in @SPEC.md — read it before implementing any task.
 
 ## Git Workflow
 - Main branch: `main`
-- Feature branches: `feature/task-description`
+- In this phase since we don't have other collaborators, commit and push to `main` directly
 - Commit messages: conventional commits (feat:, fix:, refactor:, test:, docs:)
 
 ## Constraints — Do NOT
