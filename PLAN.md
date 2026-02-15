@@ -4,9 +4,9 @@ Track your progress here. Check off tasks as you complete them.
 Reference this file at the start of each Cursor session to know where you are.
 
 ## Current Status
-- **Phase**: 1 — Project Setup (Complete)
-- **Current Task**: TASK 5
-- **Last Completed**: TASK 4
+- **Phase**: 2 — Feed Fetching & Parsing
+- **Current Task**: TASK 7
+- **Last Completed**: TASK 6
 
 ---
 
@@ -17,8 +17,8 @@ Reference this file at the start of each Cursor session to know where you are.
 - [x] TASK 4 — FeedReport model + migration
 
 ## Phase 2: Feed Fetching & Parsing
-- [ ] TASK 5 — FeedFetcher service
-- [ ] TASK 6 — FeedFetcher tests
+- [x] TASK 5 — FeedFetcher service
+- [x] TASK 6 — FeedFetcher tests
 - [ ] TASK 7 — FeedCheckController basic flow
 
 ## Phase 3: Validation Engine
@@ -55,3 +55,5 @@ Reference this file at the start of each Cursor session to know where you are.
 ## Notes
 - **TASK 1**: Restarted with clean Laravel 12 install (no starter kit). Added Tailwind CSS 4, Alpine.js, and Pest PHP. Previous Livewire starter kit had unnecessary auth/Flux/Fortify scaffolding.
 - **TASK 4**: Created FeedReport model with ULID primary key, JSON casting for results, auto-generated slug on creation, and route-model binding via slug. Migration includes index on feed_url for lookup performance.
+- **TASK 5**: Created FeedFetcher service with `fetch(string $url): SimpleXMLElement` method. Uses constructor-injected HTTP client (no facades), 10s timeout, 3 max redirects. Custom FeedFetchException with static factory methods for specific error scenarios (invalid URL, timeout, 404, SSL errors, non-XML response, not an RSS feed). Validates URL scheme, parses XML with libxml error handling, and verifies root element is `rss` or `feed`.
+- **TASK 6**: Added 24 Pest unit tests for FeedFetcher covering: valid RSS/Atom feed parsing, channel data accessibility, invalid URL handling (empty, malformed, missing scheme, FTP scheme), HTTP-only URL acceptance, timeout handling (two variants), SSL/certificate errors, generic connection failures, HTTP error responses (404, 403, 500, 503), empty/whitespace-only responses, and non-XML response handling (HTML, JSON, plain text, malformed XML, valid XML that isn't RSS/Atom). Created test fixtures: `valid-rss-feed.xml` (3 episodes with full iTunes metadata) and `valid-atom-feed.xml`.

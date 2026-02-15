@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>The PodCheck Test Show</title>
+    <link>https://example.com/podcast</link>
+    <description>A test podcast feed used for automated testing of the PodCheck feed health checker.</description>
+    <language>en-us</language>
+    <atom:link href="https://example.com/feed.xml" rel="self" type="application/rss+xml"/>
+    <itunes:author>Jane Podcaster</itunes:author>
+    <itunes:summary>A test podcast feed used for automated testing of the PodCheck feed health checker.</itunes:summary>
+    <itunes:explicit>false</itunes:explicit>
+    <itunes:image href="https://example.com/artwork.jpg"/>
+    <itunes:category text="Technology">
+      <itunes:category text="Tech News"/>
+    </itunes:category>
+    <itunes:owner>
+      <itunes:name>Jane Podcaster</itunes:name>
+      <itunes:email>jane@example.com</itunes:email>
+    </itunes:owner>
+
+    <item>
+      <title>Episode 1: Getting Started</title>
+      <itunes:title>Getting Started</itunes:title>
+      <description>In this first episode, we cover the basics of podcast feed validation.</description>
+      <enclosure url="https://example.com/episodes/ep001.mp3" length="12345678" type="audio/mpeg"/>
+      <guid isPermaLink="false">ep-001-getting-started</guid>
+      <pubDate>Mon, 10 Feb 2025 08:00:00 +0000</pubDate>
+      <itunes:duration>00:32:15</itunes:duration>
+      <itunes:episode>1</itunes:episode>
+      <itunes:season>1</itunes:season>
+    </item>
+
+    <item>
+      <title>Episode 2: Advanced Validation</title>
+      <itunes:title>Advanced Validation</itunes:title>
+      <description>We dive deeper into RSS feed validation techniques and best practices.</description>
+      <enclosure url="https://example.com/episodes/ep002.mp3" length="23456789" type="audio/mpeg"/>
+      <guid isPermaLink="false">ep-002-advanced-validation</guid>
+      <pubDate>Mon, 17 Feb 2025 08:00:00 +0000</pubDate>
+      <itunes:duration>00:45:30</itunes:duration>
+      <itunes:episode>2</itunes:episode>
+      <itunes:season>1</itunes:season>
+    </item>
+
+    <item>
+      <title>Episode 3: SEO for Podcasters</title>
+      <itunes:title>SEO for Podcasters</itunes:title>
+      <description>Learn how to optimize your podcast metadata for maximum discoverability.</description>
+      <enclosure url="https://example.com/episodes/ep003.mp3" length="34567890" type="audio/mpeg"/>
+      <guid isPermaLink="false">ep-003-seo-for-podcasters</guid>
+      <pubDate>Mon, 24 Feb 2025 08:00:00 +0000</pubDate>
+      <itunes:duration>00:28:45</itunes:duration>
+      <itunes:episode>3</itunes:episode>
+      <itunes:season>1</itunes:season>
+    </item>
+  </channel>
+</rss>

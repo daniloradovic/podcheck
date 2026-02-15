@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>The PodCheck Test Show (Atom)</title>
+  <link href="https://example.com/podcast" rel="alternate"/>
+  <link href="https://example.com/feed.atom" rel="self"/>
+  <id>urn:uuid:test-atom-feed-001</id>
+  <updated>2025-02-24T08:00:00Z</updated>
+  <author>
+    <name>Jane Podcaster</name>
+    <email>jane@example.com</email>
+  </author>
+  <subtitle>A test Atom podcast feed for automated testing.</subtitle>
+
+  <entry>
+    <title>Episode 1: Getting Started</title>
+    <link href="https://example.com/episodes/1"/>
+    <id>urn:uuid:ep-001</id>
+    <updated>2025-02-10T08:00:00Z</updated>
+    <summary>In this first episode, we cover the basics.</summary>
+  </entry>
+</feed>
