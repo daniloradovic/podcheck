@@ -5,8 +5,8 @@ Reference this file at the start of each Cursor session to know where you are.
 
 ## Current Status
 - **Phase**: 3 — Validation Engine
-- **Current Task**: TASK 8
-- **Last Completed**: TASK 7
+- **Current Task**: TASK 9
+- **Last Completed**: TASK 8
 
 ---
 
@@ -22,7 +22,7 @@ Reference this file at the start of each Cursor session to know where you are.
 - [x] TASK 7 — FeedCheckController basic flow
 
 ## Phase 3: Validation Engine
-- [ ] TASK 8 — CheckInterface + FeedValidator orchestrator
+- [x] TASK 8 — CheckInterface + FeedValidator orchestrator
 - [ ] TASK 9 — ArtworkCheck
 - [ ] TASK 10 — CategoryCheck
 - [ ] TASK 11 — Remaining channel checks (batch)
@@ -58,3 +58,4 @@ Reference this file at the start of each Cursor session to know where you are.
 - **TASK 5**: Created FeedFetcher service with `fetch(string $url): SimpleXMLElement` method. Uses constructor-injected HTTP client (no facades), 10s timeout, 3 max redirects. Custom FeedFetchException with static factory methods for specific error scenarios (invalid URL, timeout, 404, SSL errors, non-XML response, not an RSS feed). Validates URL scheme, parses XML with libxml error handling, and verifies root element is `rss` or `feed`.
 - **TASK 6**: Added 24 Pest unit tests for FeedFetcher covering: valid RSS/Atom feed parsing, channel data accessibility, invalid URL handling (empty, malformed, missing scheme, FTP scheme), HTTP-only URL acceptance, timeout handling (two variants), SSL/certificate errors, generic connection failures, HTTP error responses (404, 403, 500, 503), empty/whitespace-only responses, and non-XML response handling (HTML, JSON, plain text, malformed XML, valid XML that isn't RSS/Atom). Created test fixtures: `valid-rss-feed.xml` (3 episodes with full iTunes metadata) and `valid-atom-feed.xml`.
 - **TASK 7**: Wired up FeedCheckController with constructor-injected FeedFetcher. `POST /check` validates URL, fetches feed, extracts title (RSS 2.0 and Atom), creates FeedReport with basic results JSON, and redirects to `/report/{slug}`. FeedFetchException errors redirect back with user-friendly messages. Added `GET /report/{slug}` route with `show()` method and `report.blade.php` view displaying feed title, URL, metadata, and raw JSON results. Enabled RefreshDatabase for feature tests. Wrote 12 Pest feature tests covering: successful flow (fetch → store → redirect), single report creation, validation errors (missing/invalid/too-long URL), fetch errors (404, non-XML) with redirect-back behavior, input preservation on error, report display, 404 for missing slugs, and graceful handling of null feed titles.
+- **TASK 8**: Created the validation engine foundation: `CheckStatus` enum (pass/warn/fail), `CheckResult` value object with static factory methods (`pass()`, `warn()`, `fail()`), status helpers (`isPassing()`, `isWarning()`, `isFailing()`), and `toArray()` for JSON serialization. `CheckInterface` defines the contract: `name()`, `run(SimpleXMLElement)`, `severity()`. `FeedValidator` orchestrator accepts separate `$channelChecks` and `$episodeChecks` arrays, runs channel checks against the full feed and episode checks against individual `<item>` elements (capped at 10 episodes), formats results with check metadata for JSON storage. Supports both RSS 2.0 and Atom feeds with proper namespace handling. Includes `summarize()` static method for counting pass/warn/fail totals. Moved shared test helpers (`fixture()`, `loadFeedFixture()`) to `tests/Pest.php`. Wrote 27 tests: 12 for CheckResult (factory methods, constructors, status helpers, serialization, immutability) and 15 for FeedValidator (empty checks, single/multiple channel checks, episode iteration with title/guid extraction, 10-episode limit, missing title/guid fallbacks, combined channel+episode, summarize, Atom feed support).

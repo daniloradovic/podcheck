@@ -41,7 +41,12 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function fixture(string $filename): string
 {
-    // ..
+    return file_get_contents(base_path("tests/Fixtures/{$filename}"));
+}
+
+function loadFeedFixture(string $filename = 'valid-rss-feed.xml'): SimpleXMLElement
+{
+    return simplexml_load_string(fixture($filename));
 }

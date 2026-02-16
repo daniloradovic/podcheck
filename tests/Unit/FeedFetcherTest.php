@@ -13,11 +13,6 @@ uses(Tests\TestCase::class);
 // Helpers
 // ──────────────────────────────────────────────────
 
-function fixture(string $filename): string
-{
-    return file_get_contents(base_path("tests/Fixtures/{$filename}"));
-}
-
 function makeFetcher(): FeedFetcher
 {
     return app(FeedFetcher::class);
