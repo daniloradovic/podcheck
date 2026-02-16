@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Services\Checks\CheckInterface;
 use App\Services\Checks\CheckResult;
-use App\Services\Checks\CheckStatus;
 use App\Services\FeedValidator;
 
 // ──────────────────────────────────────────────────
@@ -43,7 +42,7 @@ function makeCheck(string $name, CheckResult $result, string $severity = 'error'
 // ──────────────────────────────────────────────────
 
 test('validate with no checks returns empty results', function () {
-    $validator = new FeedValidator();
+    $validator = new FeedValidator;
     $feed = loadFeedFixture();
 
     $results = $validator->validate($feed);

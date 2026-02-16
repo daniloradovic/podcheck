@@ -31,7 +31,7 @@ function buildFeedWithArtwork(?string $href = 'https://example.com/artwork.jpg')
 
 function buildFeedWithoutArtwork(): SimpleXMLElement
 {
-    $xml = <<<XML
+    $xml = <<<'XML'
         <?xml version="1.0" encoding="UTF-8"?>
         <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
           <channel>
@@ -45,7 +45,7 @@ function buildFeedWithoutArtwork(): SimpleXMLElement
 
 function createFakedHttp(array $fakes = []): HttpFactory
 {
-    $http = new HttpFactory();
+    $http = new HttpFactory;
     $http->fake($fakes);
 
     return $http;
@@ -207,7 +207,7 @@ test('extracts artwork URL from valid RSS feed fixture', function () {
     ]);
 
     // Build the fixture XML inline (unit tests don't have base_path)
-    $xml = <<<XML
+    $xml = <<<'XML'
         <?xml version="1.0" encoding="UTF-8"?>
         <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
           <channel>

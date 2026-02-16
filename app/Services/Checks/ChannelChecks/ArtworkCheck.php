@@ -12,7 +12,9 @@ use SimpleXMLElement;
 class ArtworkCheck implements CheckInterface
 {
     private const int MIN_DIMENSION = 1400;
+
     private const int MAX_DIMENSION = 3000;
+
     private const int HEAD_TIMEOUT_SECONDS = 5;
 
     private const array ALLOWED_CONTENT_TYPES = [

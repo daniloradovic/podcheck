@@ -36,19 +36,19 @@ function buildFeedWithCategory(?string $primary = null, ?string $sub = null): Si
 // ──────────────────────────────────────────────────
 
 test('name returns "iTunes Category"', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
 
     expect($check->name())->toBe('iTunes Category');
 });
 
 test('severity returns "error"', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
 
     expect($check->severity())->toBe('error');
 });
 
 test('implements CheckInterface', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
 
     expect($check)->toBeInstanceOf(\App\Services\Checks\CheckInterface::class);
 });
@@ -58,7 +58,7 @@ test('implements CheckInterface', function () {
 // ──────────────────────────────────────────────────
 
 test('fails when itunes:category is missing', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
     $feed = buildFeedWithCategory();
 
     $result = $check->run($feed);
@@ -69,9 +69,9 @@ test('fails when itunes:category is missing', function () {
 });
 
 test('fails when itunes:category has empty text attribute', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
 
-    $xml = <<<XML
+    $xml = <<<'XML'
         <?xml version="1.0" encoding="UTF-8"?>
         <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
           <channel>
@@ -93,7 +93,7 @@ test('fails when itunes:category has empty text attribute', function () {
 // ──────────────────────────────────────────────────
 
 test('fails when category is not in Apple taxonomy', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
     $feed = buildFeedWithCategory('Cooking');
 
     $result = $check->run($feed);
@@ -105,7 +105,7 @@ test('fails when category is not in Apple taxonomy', function () {
 });
 
 test('fails when category name is misspelled', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
     $feed = buildFeedWithCategory('Technolgy');
 
     $result = $check->run($feed);
@@ -119,7 +119,7 @@ test('fails when category name is misspelled', function () {
 // ──────────────────────────────────────────────────
 
 test('warns when valid category has available subcategories but none specified', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
     $feed = buildFeedWithCategory('Technology');
 
     // Technology has no subcategories, so this should pass
@@ -129,7 +129,7 @@ test('warns when valid category has available subcategories but none specified',
 });
 
 test('warns when category has subcategories but none is specified', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
     $feed = buildFeedWithCategory('Arts');
 
     $result = $check->run($feed);
@@ -140,7 +140,7 @@ test('warns when category has subcategories but none is specified', function () 
 });
 
 test('warns with invalid subcategory under valid primary', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
     $feed = buildFeedWithCategory('Business', 'Cooking');
 
     $result = $check->run($feed);
@@ -156,7 +156,7 @@ test('warns with invalid subcategory under valid primary', function () {
 // ──────────────────────────────────────────────────
 
 test('passes with valid primary and subcategory', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
     $feed = buildFeedWithCategory('Technology', 'Tech News');
 
     // Technology has no subcategories in Apple's taxonomy, so "Tech News" would be invalid
@@ -171,7 +171,7 @@ test('passes with valid primary and subcategory', function () {
 });
 
 test('passes with valid primary category that has no subcategories', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
     $feed = buildFeedWithCategory('True Crime');
 
     $result = $check->run($feed);
@@ -181,7 +181,7 @@ test('passes with valid primary category that has no subcategories', function ()
 });
 
 test('passes with Government category (no subcategories)', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
     $feed = buildFeedWithCategory('Government');
 
     $result = $check->run($feed);
@@ -190,7 +190,7 @@ test('passes with Government category (no subcategories)', function () {
 });
 
 test('passes with valid Education > Self-Improvement', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
     $feed = buildFeedWithCategory('Education', 'Self-Improvement');
 
     $result = $check->run($feed);
@@ -201,7 +201,7 @@ test('passes with valid Education > Self-Improvement', function () {
 });
 
 test('passes with valid Society & Culture > Documentary', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
     $feed = buildFeedWithCategory('Society &amp; Culture', 'Documentary');
 
     // XML entities in attribute values — simplexml handles this
@@ -230,10 +230,10 @@ test('passes with valid Society & Culture > Documentary', function () {
 // ──────────────────────────────────────────────────
 
 test('warns with valid fixture that has subcategory under category with no subcategories', function () {
-    $check = new CategoryCheck();
+    $check = new CategoryCheck;
 
     // Fixture has Technology > Tech News, but Technology has no subcategories
-    $xml = <<<XML
+    $xml = <<<'XML'
         <?xml version="1.0" encoding="UTF-8"?>
         <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
           <channel>

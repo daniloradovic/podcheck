@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Services\Checks\CheckInterface;
 use App\Services\Checks\CheckResult;
-use App\Services\Checks\CheckStatus;
 use SimpleXMLElement;
 
 class FeedValidator

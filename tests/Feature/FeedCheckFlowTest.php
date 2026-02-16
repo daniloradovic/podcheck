@@ -73,7 +73,7 @@ test('it rejects invalid URL format', function () {
 
 test('it rejects URL exceeding max length', function () {
     $response = $this->post(route('feed.check'), [
-        'url' => 'https://example.com/' . str_repeat('a', 2048),
+        'url' => 'https://example.com/'.str_repeat('a', 2048),
     ]);
 
     $response->assertSessionHasErrors('url');

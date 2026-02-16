@@ -12,6 +12,7 @@ use SimpleXMLElement;
 class FeedFetcher
 {
     private const int TIMEOUT_SECONDS = 10;
+
     private const int MAX_REDIRECTS = 3;
 
     public function __construct(
