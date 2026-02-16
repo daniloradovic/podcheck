@@ -21,7 +21,7 @@ Full specification is in @SPEC.md — read it before implementing any task.
 - `npm run dev` — Vite dev server
 - `php artisan test` — run all tests
 - `php artisan test --filter=ChannelChecks` — run specific group
-- `php artisan migrate:fresh --seed` — reset database
+- `./vendor/bin/pint --test` - run pint and fix eventual errors
 
 ## Architecture
 - `app/Services/FeedFetcher.php` — fetches and parses RSS XML
