@@ -63,7 +63,7 @@ test('it runs validation checks and stores results in report', function () {
     $report = FeedReport::first();
     $results = $report->results_json;
 
-    expect($results)->toHaveKeys(['feed_format', 'checked_at', 'summary', 'channel', 'episodes'])
+    expect($results)->toHaveKeys(['feed_format', 'checked_at', 'summary', 'health_score', 'seo_score', 'channel', 'episodes'])
         ->and($results['channel'])->toBeArray()->not->toBeEmpty()
         ->and($results['episodes'])->toBeArray()->not->toBeEmpty()
         ->and($results['summary'])->toHaveKeys(['total', 'pass', 'warn', 'fail']);
@@ -159,6 +159,147 @@ test('summary counts match actual check results', function () {
 
     expect($summary['total'])->toBe($totalChecks)
         ->and($summary['pass'] + $summary['warn'] + $summary['fail'])->toBe($summary['total']);
+});
+
+// ──────────────────────────────────────────────────
+// POST /check — Scoring Pipeline
+// ──────────────────────────────────────────────────
+
+test('it stores overall health score in report', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+
+    expect($report->overall_score)->toBeInt()
+        ->and($report->overall_score)->toBeGreaterThanOrEqual(0)
+        ->and($report->overall_score)->toBeLessThanOrEqual(100);
+});
+
+test('health score reflects check results accurately', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $healthScore = $report->results_json['health_score'];
+
+    expect($healthScore)->toHaveKeys(['overall', 'categories'])
+        ->and($healthScore['overall'])->toBe($report->overall_score)
+        ->and($healthScore['categories'])->toHaveKeys(['compliance', 'technical', 'best_practices']);
+
+    foreach ($healthScore['categories'] as $category) {
+        expect($category)->toHaveKeys(['score', 'pass', 'warn', 'fail', 'total'])
+            ->and($category['score'])->toBeGreaterThanOrEqual(0)
+            ->and($category['score'])->toBeLessThanOrEqual(100)
+            ->and($category['pass'] + $category['warn'] + $category['fail'])->toBe($category['total']);
+    }
+});
+
+test('seo score is stored in report', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $seoScore = $report->results_json['seo_score'];
+
+    expect($seoScore)->toHaveKeys(['overall', 'details'])
+        ->and($seoScore['overall'])->toBeGreaterThanOrEqual(0)
+        ->and($seoScore['overall'])->toBeLessThanOrEqual(100)
+        ->and($seoScore['details'])->toHaveKeys(['show_title', 'show_description', 'episode_titles']);
+});
+
+test('seo score details include required fields', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $details = $report->results_json['seo_score']['details'];
+
+    foreach (['show_title', 'show_description'] as $area) {
+        expect($details[$area])->toHaveKeys(['score', 'status', 'message', 'suggestion', 'length'])
+            ->and($details[$area]['score'])->toBeGreaterThanOrEqual(0)
+            ->and($details[$area]['score'])->toBeLessThanOrEqual(100)
+            ->and($details[$area]['status'])->toBeIn(['pass', 'warn', 'fail']);
+    }
+
+    expect($details['episode_titles'])->toHaveKeys(['score', 'status', 'message', 'suggestion', 'generic_count', 'total_count'])
+        ->and($details['episode_titles']['score'])->toBeGreaterThanOrEqual(0)
+        ->and($details['episode_titles']['score'])->toBeLessThanOrEqual(100)
+        ->and($details['episode_titles']['status'])->toBeIn(['pass', 'warn', 'fail']);
+});
+
+test('full pipeline produces consistent scores for valid feed', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $results = $report->results_json;
+
+    // Verify the report is complete with all sections
+    expect($results)->toHaveKeys([
+        'feed_format', 'checked_at', 'summary',
+        'health_score', 'seo_score',
+        'channel', 'episodes',
+    ]);
+
+    // Health score matches stored overall_score
+    expect($report->overall_score)->toBe($results['health_score']['overall']);
+
+    // Summary counts are consistent with health score
+    $summary = $results['summary'];
+    $healthCategories = $results['health_score']['categories'];
+    $categoryTotal = 0;
+    foreach ($healthCategories as $cat) {
+        $categoryTotal += $cat['total'];
+    }
+    expect($categoryTotal)->toBe($summary['total']);
+
+    // SEO analyzed all episodes in the fixture
+    $seoEpisodes = $results['seo_score']['details']['episode_titles'];
+    expect($seoEpisodes['total_count'])->toBe(3); // fixture has 3 episodes
+
+    // Feed format is correct
+    expect($results['feed_format'])->toBe('RSS 2.0');
+});
+
+test('overall score is non-zero for valid well-formed feed', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+
+    // A well-formed feed with all required fields should score reasonably well
+    expect($report->overall_score)->toBeGreaterThan(0);
 });
 
 // ──────────────────────────────────────────────────

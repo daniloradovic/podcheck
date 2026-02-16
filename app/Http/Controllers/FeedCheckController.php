@@ -8,6 +8,8 @@ use App\Exceptions\FeedFetchException;
 use App\Models\FeedReport;
 use App\Services\FeedFetcher;
 use App\Services\FeedValidator;
+use App\Services\Scoring\HealthScorer;
+use App\Services\Scoring\SeoScorer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,6 +20,8 @@ class FeedCheckController extends Controller
     public function __construct(
         private readonly FeedFetcher $feedFetcher,
         private readonly FeedValidator $feedValidator,
+        private readonly HealthScorer $healthScorer,
+        private readonly SeoScorer $seoScorer,
     ) {}
 
     public function index(): View
@@ -45,15 +49,19 @@ class FeedCheckController extends Controller
         $feedTitle = $this->extractFeedTitle($feed);
         $validationResults = $this->feedValidator->validate($feed);
         $summary = FeedValidator::summarize($validationResults);
+        $healthScore = $this->healthScorer->score($validationResults);
+        $seoScore = $this->seoScorer->score($feed);
 
         $report = FeedReport::create([
             'feed_url' => $url,
             'feed_title' => $feedTitle,
-            'overall_score' => 0,
+            'overall_score' => $healthScore->overall,
             'results_json' => [
                 'feed_format' => $feed->getName() === 'rss' ? 'RSS 2.0' : 'Atom',
                 'checked_at' => now()->toIso8601String(),
                 'summary' => $summary,
+                'health_score' => $healthScore->toArray(),
+                'seo_score' => $seoScore->toArray(),
                 'channel' => $validationResults['channel'],
                 'episodes' => $validationResults['episodes'],
             ],
