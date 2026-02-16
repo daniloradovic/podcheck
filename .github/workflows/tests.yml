@@ -3,35 +3,25 @@ name: tests
 on:
   push:
     branches:
-      - develop
       - main
-      - master
-      - workos
   pull_request:
     branches:
-      - develop
       - main
-      - master
-      - workos
 
 jobs:
   ci:
     runs-on: ubuntu-latest
-    environment: Testing
-    strategy:
-      matrix:
-        php-version: ['8.4', '8.5']
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: '8.4'
           tools: composer:v2
-          coverage: xdebug
+          extensions: dom, curl, libxml, mbstring, zip, gd
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -39,12 +29,9 @@ jobs:
           node-version: '22'
 
       - name: Install Node Dependencies
-        run: npm i
+        run: npm ci
 
-      - name: Add Flux Credentials Loaded From ENV
-        run: composer config http-basic.composer.fluxui.dev "${{ secrets.FLUX_USERNAME }}" "${{ secrets.FLUX_LICENSE_KEY }}"
-
-      - name: Install Dependencies
+      - name: Install PHP Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Copy Environment File
@@ -57,4 +44,4 @@ jobs:
         run: npm run build
 
       - name: Run Tests
-        run: ./vendor/bin/phpunit
+        run: ./vendor/bin/pest
