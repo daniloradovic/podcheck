@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\FeedFetchException;
 use App\Models\FeedReport;
 use App\Services\FeedFetcher;
+use App\Services\FeedValidator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,6 +17,7 @@ class FeedCheckController extends Controller
 {
     public function __construct(
         private readonly FeedFetcher $feedFetcher,
+        private readonly FeedValidator $feedValidator,
     ) {}
 
     public function index(): View
@@ -41,6 +43,8 @@ class FeedCheckController extends Controller
         }
 
         $feedTitle = $this->extractFeedTitle($feed);
+        $validationResults = $this->feedValidator->validate($feed);
+        $summary = FeedValidator::summarize($validationResults);
 
         $report = FeedReport::create([
             'feed_url' => $url,
@@ -49,6 +53,9 @@ class FeedCheckController extends Controller
             'results_json' => [
                 'feed_format' => $feed->getName() === 'rss' ? 'RSS 2.0' : 'Atom',
                 'checked_at' => now()->toIso8601String(),
+                'summary' => $summary,
+                'channel' => $validationResults['channel'],
+                'episodes' => $validationResults['episodes'],
             ],
         ]);
 

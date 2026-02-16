@@ -51,6 +51,116 @@ test('it stores only one report per submission', function () {
     expect(FeedReport::count())->toBe(1);
 });
 
+test('it runs validation checks and stores results in report', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $results = $report->results_json;
+
+    expect($results)->toHaveKeys(['feed_format', 'checked_at', 'summary', 'channel', 'episodes'])
+        ->and($results['channel'])->toBeArray()->not->toBeEmpty()
+        ->and($results['episodes'])->toBeArray()->not->toBeEmpty()
+        ->and($results['summary'])->toHaveKeys(['total', 'pass', 'warn', 'fail']);
+});
+
+test('channel checks include all registered checks', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $channelCheckNames = array_column($report->results_json['channel'], 'name');
+
+    expect($channelCheckNames)->toContain(
+        'Podcast Artwork',
+        'iTunes Category',
+        'Explicit Tag',
+        'iTunes Author',
+        'Owner Email',
+        'Language Tag',
+        'Website Link',
+        'Channel Description',
+    );
+});
+
+test('episode checks run against each sampled episode', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $episodes = $report->results_json['episodes'];
+
+    // Fixture has 3 episodes
+    expect($episodes)->toHaveCount(3);
+
+    foreach ($episodes as $episode) {
+        expect($episode)->toHaveKeys(['title', 'guid', 'results'])
+            ->and($episode['results'])->toBeArray()->not->toBeEmpty();
+    }
+});
+
+test('each check result has required structure', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+
+    foreach ($report->results_json['channel'] as $result) {
+        expect($result)->toHaveKeys(['name', 'severity', 'status', 'message', 'suggestion'])
+            ->and($result['status'])->toBeIn(['pass', 'warn', 'fail']);
+    }
+
+    foreach ($report->results_json['episodes'] as $episode) {
+        foreach ($episode['results'] as $result) {
+            expect($result)->toHaveKeys(['name', 'severity', 'status', 'message', 'suggestion'])
+                ->and($result['status'])->toBeIn(['pass', 'warn', 'fail']);
+        }
+    }
+});
+
+test('summary counts match actual check results', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $results = $report->results_json;
+    $summary = $results['summary'];
+
+    // Count all results manually
+    $totalChecks = count($results['channel']);
+    foreach ($results['episodes'] as $episode) {
+        $totalChecks += count($episode['results']);
+    }
+
+    expect($summary['total'])->toBe($totalChecks)
+        ->and($summary['pass'] + $summary['warn'] + $summary['fail'])->toBe($summary['total']);
+});
+
 // ──────────────────────────────────────────────────
 // POST /check — Validation Errors
 // ──────────────────────────────────────────────────
