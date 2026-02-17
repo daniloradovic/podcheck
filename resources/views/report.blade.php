@@ -140,6 +140,9 @@
 
     // Build SEO category from seo_score details
     $seoScore = $report->results_json['seo_score'] ?? null;
+    $seoPass = 0;
+    $seoWarn = 0;
+    $seoFail = 0;
     if ($seoScore && isset($seoScore['details'])) {
         $seoNameMap = [
             'show_title' => 'Show Title',
@@ -154,8 +157,53 @@
                 'message' => $detail['message'],
                 'suggestion' => $detail['suggestion'] ?? null,
             ];
+            match ($detail['status']) {
+                'pass' => $seoPass++,
+                'warn' => $seoWarn++,
+                'fail' => $seoFail++,
+                default => null,
+            };
         }
     }
+
+    // --- Build category score cards data ---
+    $healthScore = $report->results_json['health_score'] ?? null;
+    $healthCategories = $healthScore['categories'] ?? [];
+
+    $categoryCards = [
+        'compliance' => [
+            'label' => 'Compliance',
+            'icon' => 'shield',
+            'score' => $healthCategories['compliance']['score'] ?? 100,
+            'pass' => $healthCategories['compliance']['pass'] ?? 0,
+            'warn' => $healthCategories['compliance']['warn'] ?? 0,
+            'fail' => $healthCategories['compliance']['fail'] ?? 0,
+        ],
+        'technical' => [
+            'label' => 'Technical',
+            'icon' => 'code',
+            'score' => $healthCategories['technical']['score'] ?? 100,
+            'pass' => $healthCategories['technical']['pass'] ?? 0,
+            'warn' => $healthCategories['technical']['warn'] ?? 0,
+            'fail' => $healthCategories['technical']['fail'] ?? 0,
+        ],
+        'best_practices' => [
+            'label' => 'Best Practices',
+            'icon' => 'star',
+            'score' => $healthCategories['best_practices']['score'] ?? 100,
+            'pass' => $healthCategories['best_practices']['pass'] ?? 0,
+            'warn' => $healthCategories['best_practices']['warn'] ?? 0,
+            'fail' => $healthCategories['best_practices']['fail'] ?? 0,
+        ],
+        'seo' => [
+            'label' => 'SEO',
+            'icon' => 'search',
+            'score' => $seoScore['overall'] ?? 100,
+            'pass' => $seoPass,
+            'warn' => $seoWarn,
+            'fail' => $seoFail,
+        ],
+    ];
 @endphp
 
 @section('content')
@@ -304,6 +352,123 @@
                     </div>
                 @endif
             </div>
+        </div>
+
+        {{-- Category Score Cards --}}
+        <div class="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            @foreach ($categoryCards as $cardKey => $card)
+                @php
+                    $cardScore = $card['score'];
+                    if ($cardScore >= 80) {
+                        $cardScoreColor = 'text-emerald-400';
+                        $cardRingColor = '#34d399';
+                        $cardTrackColor = 'text-emerald-400/10';
+                    } elseif ($cardScore >= 50) {
+                        $cardScoreColor = 'text-amber-400';
+                        $cardRingColor = '#fbbf24';
+                        $cardTrackColor = 'text-amber-400/10';
+                    } else {
+                        $cardScoreColor = 'text-red-400';
+                        $cardRingColor = '#f87171';
+                        $cardTrackColor = 'text-red-400/10';
+                    }
+                    $cardCircumference = 150.796; // 2 * π * 24
+                    $cardOffset = $cardCircumference * (1 - $cardScore / 100);
+                @endphp
+                <div
+                    class="rounded-xl border border-surface-800 bg-surface-900 p-5 transition-colors hover:border-surface-700"
+                    x-data="{ loaded: false }"
+                    x-init="$nextTick(() => loaded = true)"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        {{-- Category Info --}}
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2.5">
+                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-800">
+                                    @if ($card['icon'] === 'shield')
+                                        <svg class="h-4 w-4 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                        </svg>
+                                    @elseif ($card['icon'] === 'code')
+                                        <svg class="h-4 w-4 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="16 18 22 12 16 6"/>
+                                            <polyline points="8 6 2 12 8 18"/>
+                                        </svg>
+                                    @elseif ($card['icon'] === 'star')
+                                        <svg class="h-4 w-4 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                        </svg>
+                                    @elseif ($card['icon'] === 'search')
+                                        <svg class="h-4 w-4 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                        </svg>
+                                    @endif
+                                </div>
+                                <h3 class="truncate text-sm font-semibold text-surface-100">
+                                    {{ $card['label'] }}
+                                </h3>
+                            </div>
+
+                            {{-- Pass / Warn / Fail Counts --}}
+                            <div class="mt-3 flex flex-wrap items-center gap-2">
+                                @if ($card['pass'] > 0)
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
+                                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                        {{ $card['pass'] }}
+                                    </span>
+                                @endif
+                                @if ($card['warn'] > 0)
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-400">
+                                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                                        {{ $card['warn'] }}
+                                    </span>
+                                @endif
+                                @if ($card['fail'] > 0)
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium text-red-400">
+                                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                        {{ $card['fail'] }}
+                                    </span>
+                                @endif
+                                @if ($card['pass'] === 0 && $card['warn'] === 0 && $card['fail'] === 0)
+                                    <span class="text-xs text-surface-500">No checks</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Mini Score Ring --}}
+                        <div class="relative h-14 w-14 shrink-0">
+                            <svg viewBox="0 0 56 56" class="h-full w-full" aria-hidden="true">
+                                <circle
+                                    cx="28"
+                                    cy="28"
+                                    r="24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="4"
+                                    class="text-surface-800"
+                                />
+                                <circle
+                                    cx="28"
+                                    cy="28"
+                                    r="24"
+                                    fill="none"
+                                    stroke="{{ $cardRingColor }}"
+                                    stroke-width="4"
+                                    stroke-linecap="round"
+                                    stroke-dasharray="{{ $cardCircumference }}"
+                                    :stroke-dashoffset="loaded ? {{ $cardOffset }} : {{ $cardCircumference }}"
+                                    transform="rotate(-90 28 28)"
+                                    style="transition: stroke-dashoffset 1s ease-out"
+                                />
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-sm font-bold {{ $cardScoreColor }}">{{ $cardScore }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
         </div>
 
         {{-- Check Results by Category --}}
