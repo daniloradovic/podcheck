@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'PodCheck')
+@section('title', 'PodCheck — Free Podcast RSS Feed Health Checker')
+@section('canonical_url', route('home'))
 
 @section('content')
 

@@ -5,10 +5,32 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>@yield('title', 'PodCheck') — Podcast RSS Feed Health Checker</title>
+        <title>@yield('title', 'PodCheck — Podcast RSS Feed Health Checker')</title>
+        <meta name="description" content="@yield('meta_description', 'Free podcast RSS feed health checker. Validate your feed against Apple, Spotify, and Google requirements. Get a detailed health report with SEO scoring and actionable fixes.')">
+
+        {{-- Open Graph --}}
+        <meta property="og:type" content="@yield('og_type', 'website')">
+        <meta property="og:title" content="@yield('og_title', 'PodCheck — Podcast RSS Feed Health Checker')">
+        <meta property="og:description" content="@yield('og_description', 'Free podcast RSS feed health checker. Validate your feed against Apple, Spotify, and Google requirements. Get a detailed health report with SEO scoring and actionable fixes.')">
+        <meta property="og:url" content="@yield('og_url', url('/'))">
+        <meta property="og:site_name" content="PodCheck">
+        @hasSection('og_image')
+            <meta property="og:image" content="@yield('og_image')">
+        @endif
+
+        {{-- Twitter Card --}}
+        <meta name="twitter:card" content="@yield('twitter_card', 'summary')">
+        <meta name="twitter:title" content="@yield('og_title', 'PodCheck — Podcast RSS Feed Health Checker')">
+        <meta name="twitter:description" content="@yield('og_description', 'Free podcast RSS feed health checker. Validate your feed against Apple, Spotify, and Google requirements. Get a detailed health report with SEO scoring and actionable fixes.')">
+        @hasSection('og_image')
+            <meta name="twitter:image" content="@yield('og_image')">
+        @endif
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet" />
+
+        {{-- Canonical URL --}}
+        <link rel="canonical" href="@yield('canonical_url', url('/'))">
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>

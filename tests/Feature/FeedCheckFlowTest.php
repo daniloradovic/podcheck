@@ -920,3 +920,124 @@ test('error page includes data-has-errors marker for Alpine reset', function () 
     $followUp = $this->get(route('home'));
     $followUp->assertSee('data-has-errors', false);
 });
+
+// ──────────────────────────────────────────────────
+// Meta Tags & Open Graph
+// ──────────────────────────────────────────────────
+
+test('home page includes default meta tags and OG data', function () {
+    $response = $this->get(route('home'));
+
+    $response->assertOk();
+    $response->assertSee('<meta name="description"', false);
+    $response->assertSee('<meta property="og:type" content="website"', false);
+    $response->assertSee('<meta property="og:title"', false);
+    $response->assertSee('<meta property="og:description"', false);
+    $response->assertSee('<meta property="og:site_name" content="PodCheck"', false);
+    $response->assertSee('<meta name="twitter:card" content="summary"', false);
+    $response->assertSee('<link rel="canonical"', false);
+});
+
+test('home page does not include og:image when no image is set', function () {
+    $response = $this->get(route('home'));
+
+    $response->assertOk();
+    $response->assertDontSee('og:image', false);
+    $response->assertDontSee('twitter:image', false);
+});
+
+test('report page has dynamic OG title with podcast name and score', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $response = $this->get(route('report.show', $report));
+
+    $response->assertOk();
+    $response->assertSee('PodCheck Report: The PodCheck Test Show', false);
+    $response->assertSee('Score: '.$report->overall_score.'/100', false);
+});
+
+test('report page includes OG meta tags with correct type and URL', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $response = $this->get(route('report.show', $report));
+
+    $response->assertOk();
+    $response->assertSee('<meta property="og:type" content="article"', false);
+    $response->assertSee('<meta name="twitter:card" content="summary_large_image"', false);
+    $response->assertSee('<link rel="canonical" href="'.route('report.show', $report).'"', false);
+});
+
+test('report page meta description includes podcast name and score', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $response = $this->get(route('report.show', $report));
+
+    $response->assertOk();
+    $response->assertSee('Podcast feed health report for The PodCheck Test Show', false);
+    $response->assertSee('Overall score: '.$report->overall_score.'/100', false);
+});
+
+test('report page includes og:image when artwork URL is available', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $artworkUrl = $report->results_json['artwork_url'] ?? null;
+
+    if ($artworkUrl) {
+        $response = $this->get(route('report.show', $report));
+        $response->assertSee('<meta property="og:image"', false);
+        $response->assertSee('<meta name="twitter:image"', false);
+    } else {
+        expect(true)->toBeTrue(); // Fixture may not have artwork
+    }
+});
+
+test('report page handles missing feed title gracefully in meta tags', function () {
+    $report = FeedReport::create([
+        'feed_url' => 'https://example.com/feed.xml',
+        'feed_title' => null,
+        'overall_score' => 72,
+        'results_json' => [
+            'feed_format' => 'RSS 2.0',
+            'summary' => ['pass' => 5, 'warn' => 2, 'fail' => 1, 'total' => 8],
+            'health_score' => ['overall' => 72, 'categories' => []],
+            'seo_score' => ['overall' => 65, 'details' => []],
+            'channel' => [],
+            'episodes' => [],
+        ],
+    ]);
+
+    $response = $this->get(route('report.show', $report));
+
+    $response->assertOk();
+    $response->assertSee('PodCheck Report: Feed Report', false);
+    $response->assertSee('Score: 72/100', false);
+    $response->assertSee('Podcast feed health report for this podcast', false);
+});

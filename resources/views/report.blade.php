@@ -1,6 +1,16 @@
 @extends('layouts.app')
 
-@section('title', ($report->feed_title ?? 'Feed Report') . ' — PodCheck')
+@section('title', 'PodCheck Report: ' . ($report->feed_title ?? 'Feed Report') . ' — Score: ' . $report->overall_score . '/100')
+@section('meta_description', 'Podcast feed health report for ' . ($report->feed_title ?? 'this podcast') . '. Overall score: ' . $report->overall_score . '/100. Checked against Apple, Spotify, and Google requirements.')
+@section('og_type', 'article')
+@section('og_title', 'PodCheck Report: ' . ($report->feed_title ?? 'Feed Report') . ' — Score: ' . $report->overall_score . '/100')
+@section('og_description', 'Podcast feed health report for ' . ($report->feed_title ?? 'this podcast') . '. Overall score: ' . $report->overall_score . '/100. Checked against Apple, Spotify, and Google requirements.')
+@section('og_url', route('report.show', $report))
+@section('canonical_url', route('report.show', $report))
+@section('twitter_card', 'summary_large_image')
+@if ($report->results_json['artwork_url'] ?? null)
+    @section('og_image', $report->results_json['artwork_url'])
+@endif
 
 @php
     $score = $report->overall_score;
