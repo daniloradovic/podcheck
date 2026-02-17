@@ -19,7 +19,7 @@ Alpine.data('feedChecker', () => ({
 
     get currentStepLabel() {
         if (this.currentStep < 0) return 'Starting analysis...';
-        if (this.currentStep >= this.steps.length) return 'Preparing your report...';
+        if (this.currentStep >= this.steps.length) return 'Redirecting to your report...';
         return this.steps[this.currentStep].label;
     },
 
@@ -33,7 +33,7 @@ Alpine.data('feedChecker', () => ({
         this.currentStep++;
         if (this.currentStep < this.steps.length) {
             this.steps[this.currentStep].status = 'active';
-            const delay = this.currentStep === 0 ? 1500 : 2000 + Math.random() * 1500;
+            const delay = 400 + Math.random() * 400;
             setTimeout(() => {
                 this.steps[this.currentStep].status = 'done';
                 this.advanceStep();

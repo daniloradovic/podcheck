@@ -104,7 +104,7 @@
                             </div>
                             <div>
                                 <p class="text-sm font-medium text-surface-100" x-text="currentStepLabel"></p>
-                                <p class="mt-0.5 text-xs text-surface-500">This usually takes 5–15 seconds</p>
+                                <p class="mt-0.5 text-xs text-surface-500">This usually takes a few seconds</p>
                             </div>
                         </div>
                     </div>
