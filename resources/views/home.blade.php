@@ -55,7 +55,7 @@
                             required
                             :readonly="submitting"
                             :class="submitting && 'opacity-50 cursor-not-allowed'"
-                            class="block w-full rounded-lg border border-surface-700 bg-surface-900 px-4 py-3.5 text-surface-100 placeholder-surface-500 shadow-sm transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/25"
+                            class="block w-full rounded-lg border bg-surface-900 px-4 py-3.5 text-surface-100 placeholder-surface-500 shadow-sm transition-colors focus:outline-none focus:ring-2 {{ $errors->any() ? 'border-red-400/50 focus:border-red-400 focus:ring-red-400/25' : 'border-surface-700 focus:border-brand-400 focus:ring-brand-400/25' }}"
                         >
                     </div>
 
@@ -79,9 +79,144 @@
                     </button>
                 </div>
 
-                @error('url')
-                    <p class="mt-2 text-sm text-red-400">{{ $message }}</p>
-                @enderror
+                {{-- Error Alert --}}
+                @if ($errors->any())
+                    <div data-has-errors class="hidden"></div>
+                    @php
+                        $errorType = session('error_type', 'validation');
+                        $errorMessage = $errors->first('url');
+
+                        $errorConfig = match ($errorType) {
+                            'unreachable' => [
+                                'title' => 'Feed Unreachable',
+                                'icon' => 'wifi-off',
+                                'color' => 'amber',
+                                'suggestions' => [
+                                    'Double-check that the URL is correct and publicly accessible',
+                                    'Make sure the feed server is online and responding',
+                                    'Try again in a few moments — the server may be temporarily unavailable',
+                                ],
+                            ],
+                            'not_podcast' => [
+                                'title' => 'Not a Podcast Feed',
+                                'icon' => 'file-x',
+                                'color' => 'red',
+                                'suggestions' => [
+                                    'Make sure the URL points to an RSS or Atom feed, not a website',
+                                    'Look for a feed URL in your podcast host\'s dashboard (usually ends in .xml or /feed)',
+                                    'Common hosts: Buzzsprout, Libsyn, Anchor, Podbean, Transistor, Castos',
+                                ],
+                            ],
+                            'invalid_url' => [
+                                'title' => 'Invalid URL',
+                                'icon' => 'link-off',
+                                'color' => 'red',
+                                'suggestions' => [
+                                    'Enter a complete URL starting with https:// or http://',
+                                    'Example: https://feeds.example.com/your-podcast',
+                                ],
+                            ],
+                            'unexpected' => [
+                                'title' => 'Something Went Wrong',
+                                'icon' => 'alert-circle',
+                                'color' => 'red',
+                                'suggestions' => [
+                                    'This is an unexpected error on our end — please try again',
+                                    'If the problem persists, the feed may have unusual formatting',
+                                ],
+                            ],
+                            default => [
+                                'title' => 'Invalid Input',
+                                'icon' => 'alert-circle',
+                                'color' => 'red',
+                                'suggestions' => [],
+                            ],
+                        };
+                    @endphp
+
+                    <div
+                        class="mt-4 overflow-hidden rounded-xl border {{ $errorConfig['color'] === 'amber' ? 'border-amber-400/20 bg-amber-400/5' : 'border-red-400/20 bg-red-400/5' }}"
+                        x-data="{ open: true }"
+                        x-show="open"
+                        x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 -translate-y-2"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                    >
+                        <div class="px-5 py-4">
+                            <div class="flex items-start gap-3">
+                                {{-- Error Icon --}}
+                                <div class="mt-0.5 shrink-0">
+                                    @if ($errorConfig['icon'] === 'wifi-off')
+                                        <svg class="h-5 w-5 {{ $errorConfig['color'] === 'amber' ? 'text-amber-400' : 'text-red-400' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="1" y1="1" x2="23" y2="23"/>
+                                            <path d="M16.72 11.06A10.94 10.94 0 0119 12.55"/>
+                                            <path d="M5 12.55a10.94 10.94 0 015.17-2.39"/>
+                                            <path d="M10.71 5.05A16 16 0 0122.56 9"/>
+                                            <path d="M1.42 9a15.91 15.91 0 014.7-2.88"/>
+                                            <path d="M8.53 16.11a6 6 0 016.95 0"/>
+                                            <line x1="12" y1="20" x2="12.01" y2="20"/>
+                                        </svg>
+                                    @elseif ($errorConfig['icon'] === 'file-x')
+                                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="9.5" y1="12.5" x2="14.5" y2="17.5"/>
+                                            <line x1="14.5" y1="12.5" x2="9.5" y2="17.5"/>
+                                        </svg>
+                                    @elseif ($errorConfig['icon'] === 'link-off')
+                                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M15 7h3a5 5 0 015 5 5 5 0 01-1.43 3.5"/>
+                                            <path d="M9 17H6A5 5 0 016 7"/>
+                                            <line x1="8" y1="12" x2="12" y2="12"/>
+                                            <line x1="2" y1="2" x2="22" y2="22"/>
+                                        </svg>
+                                    @else
+                                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="8" x2="12" y2="12"/>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                        </svg>
+                                    @endif
+                                </div>
+
+                                {{-- Error Content --}}
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="text-sm font-semibold {{ $errorConfig['color'] === 'amber' ? 'text-amber-400' : 'text-red-400' }}">
+                                        {{ $errorConfig['title'] }}
+                                    </h3>
+                                    <p class="mt-1 text-sm text-surface-300">
+                                        {{ $errorMessage }}
+                                    </p>
+
+                                    @if (!empty($errorConfig['suggestions']))
+                                        <ul class="mt-3 space-y-1.5">
+                                            @foreach ($errorConfig['suggestions'] as $suggestion)
+                                                <li class="flex items-start gap-2 text-xs text-surface-400">
+                                                    <svg class="mt-0.5 h-3 w-3 shrink-0 {{ $errorConfig['color'] === 'amber' ? 'text-amber-400/50' : 'text-red-400/50' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <polyline points="9 18 15 12 9 6"/>
+                                                    </svg>
+                                                    {{ $suggestion }}
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </div>
+
+                                {{-- Dismiss Button --}}
+                                <button
+                                    @click="open = false"
+                                    class="shrink-0 rounded-lg p-1 text-surface-500 transition-colors hover:text-surface-300"
+                                    aria-label="Dismiss error"
+                                >
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18"/>
+                                        <line x1="6" y1="6" x2="18" y2="18"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 {{-- Loading Progress Panel --}}
                 <div

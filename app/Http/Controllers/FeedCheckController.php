@@ -49,33 +49,44 @@ class FeedCheckController extends Controller
             return redirect()
                 ->route('home')
                 ->withInput()
+                ->with('error_type', $e->errorType)
                 ->withErrors(['url' => $e->getMessage()]);
         }
 
-        $feedTitle = $this->extractFeedTitle($feed);
-        $validationResults = $this->feedValidator->validate($feed);
-        $summary = FeedValidator::summarize($validationResults);
-        $healthScore = $this->healthScorer->score($validationResults);
-        $seoScore = $this->seoScorer->score($feed);
+        try {
+            $feedTitle = $this->extractFeedTitle($feed);
+            $validationResults = $this->feedValidator->validate($feed);
+            $summary = FeedValidator::summarize($validationResults);
+            $healthScore = $this->healthScorer->score($validationResults);
+            $seoScore = $this->seoScorer->score($feed);
 
-        $report = FeedReport::create([
-            'feed_url' => $url,
-            'feed_title' => $feedTitle,
-            'overall_score' => $healthScore->overall,
-            'results_json' => [
-                'feed_format' => $feed->getName() === 'rss' ? 'RSS 2.0' : 'Atom',
-                'checked_at' => now()->toIso8601String(),
-                'artwork_url' => $this->extractArtworkUrl($feed),
-                'total_episodes' => $this->countTotalEpisodes($feed),
-                'summary' => $summary,
-                'health_score' => $healthScore->toArray(),
-                'seo_score' => $seoScore->toArray(),
-                'channel' => $validationResults['channel'],
-                'episodes' => $validationResults['episodes'],
-            ],
-        ]);
+            $report = FeedReport::create([
+                'feed_url' => $url,
+                'feed_title' => $feedTitle,
+                'overall_score' => $healthScore->overall,
+                'results_json' => [
+                    'feed_format' => $feed->getName() === 'rss' ? 'RSS 2.0' : 'Atom',
+                    'checked_at' => now()->toIso8601String(),
+                    'artwork_url' => $this->extractArtworkUrl($feed),
+                    'total_episodes' => $this->countTotalEpisodes($feed),
+                    'summary' => $summary,
+                    'health_score' => $healthScore->toArray(),
+                    'seo_score' => $seoScore->toArray(),
+                    'channel' => $validationResults['channel'],
+                    'episodes' => $validationResults['episodes'],
+                ],
+            ]);
 
-        return redirect()->route('report.show', $report);
+            return redirect()->route('report.show', $report);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('home')
+                ->withInput()
+                ->with('error_type', 'unexpected')
+                ->withErrors(['url' => 'Something went wrong while analyzing the feed. Please try again.']);
+        }
     }
 
     public function show(FeedReport $report): View

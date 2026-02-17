@@ -573,3 +573,155 @@ test('report page handles missing feed title gracefully', function () {
     $response->assertOk();
     $response->assertSee('Unknown Podcast');
 });
+
+// ──────────────────────────────────────────────────
+// Error Handling UI
+// ──────────────────────────────────────────────────
+
+test('unreachable feed shows "Feed Unreachable" error with suggestions', function () {
+    Http::fake([
+        'example.com/*' => Http::response('Not Found', 404),
+    ]);
+
+    $response = $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $response->assertRedirect(route('home'));
+    $response->assertSessionHas('error_type', 'unreachable');
+
+    $followUp = $this->get(route('home'));
+    $followUp->assertSee('Feed Unreachable');
+    $followUp->assertSee('Double-check that the URL is correct');
+});
+
+test('non-XML response shows "Not a Podcast Feed" error with suggestions', function () {
+    Http::fake([
+        'example.com/*' => Http::response('<html><body>Not a feed</body></html>', 200),
+    ]);
+
+    $response = $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $response->assertRedirect(route('home'));
+    $response->assertSessionHas('error_type', 'not_podcast');
+
+    $followUp = $this->get(route('home'));
+    $followUp->assertSee('Not a Podcast Feed');
+    $followUp->assertSee('Make sure the URL points to an RSS or Atom feed');
+});
+
+test('non-RSS XML shows "Not a Podcast Feed" error', function () {
+    $nonRssXml = '<?xml version="1.0"?><root><item>Not an RSS feed</item></root>';
+
+    Http::fake([
+        'example.com/*' => Http::response($nonRssXml, 200),
+    ]);
+
+    $response = $this->post(route('feed.check'), [
+        'url' => 'https://example.com/data.xml',
+    ]);
+
+    $response->assertRedirect(route('home'));
+    $response->assertSessionHas('error_type', 'not_podcast');
+});
+
+test('server error shows "Feed Unreachable" with error type in session', function () {
+    Http::fake([
+        'example.com/*' => Http::response('Internal Server Error', 500),
+    ]);
+
+    $response = $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $response->assertRedirect(route('home'));
+    $response->assertSessionHas('error_type', 'unreachable');
+});
+
+test('validation error shows "Invalid Input" with error message', function () {
+    $response = $this->from(route('home'))->post(route('feed.check'), [
+        'url' => '',
+    ]);
+
+    $response->assertRedirect(route('home'));
+    $response->assertSessionHasErrors('url');
+});
+
+test('error alert is dismissible (has dismiss button markup)', function () {
+    Http::fake([
+        'example.com/*' => Http::response('Not Found', 404),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $followUp = $this->get(route('home'));
+    $followUp->assertSee('Dismiss error', false);
+});
+
+test('error preserves URL input for user to retry', function () {
+    Http::fake([
+        'example.com/*' => Http::response('Not Found', 404),
+    ]);
+
+    $response = $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $response->assertSessionHasInput('url', 'https://example.com/feed.xml');
+});
+
+test('error input field gets red border styling', function () {
+    Http::fake([
+        'example.com/*' => Http::response('Not Found', 404),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $followUp = $this->get(route('home'));
+    $followUp->assertSee('border-red-400/50', false);
+});
+
+test('successful check does not show error alert', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $response = $this->get(route('report.show', $report));
+
+    $response->assertDontSee('Feed Unreachable');
+    $response->assertDontSee('Not a Podcast Feed');
+    $response->assertDontSee('Invalid URL');
+});
+
+test('home page without errors does not show error panel', function () {
+    $response = $this->get(route('home'));
+
+    $response->assertOk();
+    $response->assertDontSee('Feed Unreachable');
+    $response->assertDontSee('Not a Podcast Feed');
+    $response->assertDontSee('data-has-errors', false);
+});
+
+test('error page includes data-has-errors marker for Alpine reset', function () {
+    Http::fake([
+        'example.com/*' => Http::response('Not Found', 404),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $followUp = $this->get(route('home'));
+    $followUp->assertSee('data-has-errors', false);
+});

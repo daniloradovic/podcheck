@@ -41,9 +41,27 @@ Alpine.data('feedChecker', () => ({
         }
     },
 
+    resetState() {
+        this.submitting = false;
+        this.currentStep = -1;
+        this.steps.forEach((step) => (step.status = 'pending'));
+    },
+
     init() {
         const oldUrl = this.$el.querySelector('input[name="url"]')?.value;
         if (oldUrl) this.url = oldUrl;
+
+        // Reset loading state if page has errors (redirect after failed check)
+        if (this.$el.querySelector('[data-has-errors]')) {
+            this.resetState();
+        }
+
+        // Reset loading state on back/forward navigation (bfcache)
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                this.resetState();
+            }
+        });
     },
 }));
 
