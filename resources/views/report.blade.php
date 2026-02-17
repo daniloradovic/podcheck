@@ -35,6 +35,127 @@
         $scoreLabel = 'Critical';
         $scoreMessage = 'Your feed has critical issues that need to be fixed for proper distribution.';
     }
+
+    // --- Group checks by category ---
+    $categoryMap = [
+        'Podcast Artwork' => 'compliance',
+        'iTunes Category' => 'compliance',
+        'Explicit Tag' => 'compliance',
+        'Owner Email' => 'compliance',
+        'iTunes Author' => 'best_practices',
+        'Language Tag' => 'technical',
+        'Website Link' => 'technical',
+        'Channel Description' => 'best_practices',
+        'Episode Enclosure' => 'compliance',
+        'Episode GUID' => 'technical',
+        'Episode Publication Date' => 'technical',
+        'Episode Duration' => 'technical',
+        'Episode Title' => 'best_practices',
+        'Episode Description' => 'best_practices',
+    ];
+
+    $categoryMeta = [
+        'compliance' => [
+            'label' => 'Compliance',
+            'description' => 'Apple & Spotify directory requirements',
+            'icon' => 'shield',
+        ],
+        'technical' => [
+            'label' => 'Technical',
+            'description' => 'Feed structure and metadata format',
+            'icon' => 'code',
+        ],
+        'best_practices' => [
+            'label' => 'Best Practices',
+            'description' => 'Quality and recommendations',
+            'icon' => 'star',
+        ],
+        'seo' => [
+            'label' => 'SEO',
+            'description' => 'Search optimization for titles and descriptions',
+            'icon' => 'search',
+        ],
+    ];
+
+    $categoryOrder = ['compliance', 'technical', 'best_practices', 'seo'];
+
+    // Group channel checks
+    $groupedChecks = [];
+    $channelChecks = $report->results_json['channel'] ?? [];
+    foreach ($channelChecks as $check) {
+        $cat = $categoryMap[$check['name']] ?? 'best_practices';
+        $groupedChecks[$cat][] = $check;
+    }
+
+    // Aggregate episode checks by check name
+    $episodes = $report->results_json['episodes'] ?? [];
+    $episodeAggregates = [];
+    foreach ($episodes as $episode) {
+        foreach ($episode['results'] ?? [] as $result) {
+            $name = $result['name'];
+            if (!isset($episodeAggregates[$name])) {
+                $episodeAggregates[$name] = [
+                    'name' => $name,
+                    'severity' => $result['severity'],
+                    'suggestion' => $result['suggestion'],
+                    'pass' => 0,
+                    'warn' => 0,
+                    'fail' => 0,
+                    'total' => 0,
+                    'worst_status' => 'pass',
+                    'worst_message' => $result['message'],
+                ];
+            }
+            $episodeAggregates[$name][$result['status']]++;
+            $episodeAggregates[$name]['total']++;
+            $statusPriority = ['pass' => 0, 'warn' => 1, 'fail' => 2];
+            if ($statusPriority[$result['status']] > $statusPriority[$episodeAggregates[$name]['worst_status']]) {
+                $episodeAggregates[$name]['worst_status'] = $result['status'];
+                $episodeAggregates[$name]['worst_message'] = $result['message'];
+                if ($result['suggestion']) {
+                    $episodeAggregates[$name]['suggestion'] = $result['suggestion'];
+                }
+            }
+        }
+    }
+
+    // Add episode aggregates to their categories
+    foreach ($episodeAggregates as $aggregate) {
+        $cat = $categoryMap[$aggregate['name']] ?? 'best_practices';
+        $groupedChecks[$cat][] = [
+            'name' => $aggregate['name'],
+            'severity' => $aggregate['severity'],
+            'status' => $aggregate['worst_status'],
+            'message' => $aggregate['worst_message'],
+            'suggestion' => $aggregate['suggestion'],
+            'is_episode_check' => true,
+            'episode_counts' => [
+                'pass' => $aggregate['pass'],
+                'warn' => $aggregate['warn'],
+                'fail' => $aggregate['fail'],
+                'total' => $aggregate['total'],
+            ],
+        ];
+    }
+
+    // Build SEO category from seo_score details
+    $seoScore = $report->results_json['seo_score'] ?? null;
+    if ($seoScore && isset($seoScore['details'])) {
+        $seoNameMap = [
+            'show_title' => 'Show Title',
+            'show_description' => 'Show Description',
+            'episode_titles' => 'Episode Titles',
+        ];
+        foreach ($seoScore['details'] as $key => $detail) {
+            $groupedChecks['seo'][] = [
+                'name' => $seoNameMap[$key] ?? $key,
+                'severity' => 'recommended',
+                'status' => $detail['status'],
+                'message' => $detail['message'],
+                'suggestion' => $detail['suggestion'] ?? null,
+            ];
+        }
+    }
 @endphp
 
 @section('content')
@@ -185,16 +306,259 @@
             </div>
         </div>
 
-        {{-- Placeholder: Check results will be built in Tasks 18-20 --}}
-        <div class="mt-8 rounded-xl border border-surface-800 bg-surface-900 p-6 sm:p-8">
-            <h2 class="text-lg font-semibold text-surface-200">Detailed Results</h2>
-            <p class="mt-2 text-sm text-surface-400">
-                Check-by-check results, category breakdowns, and episode summaries will appear here.
-            </p>
+        {{-- Check Results by Category --}}
+        <div class="mt-8 space-y-6">
+            @foreach ($categoryOrder as $catKey)
+                @php
+                    $checks = $groupedChecks[$catKey] ?? [];
+                    $meta = $categoryMeta[$catKey];
+                    $catPass = collect($checks)->where('status', 'pass')->count();
+                    $catWarn = collect($checks)->where('status', 'warn')->count();
+                    $catFail = collect($checks)->where('status', 'fail')->count();
+                @endphp
 
-            <div class="mt-4 overflow-x-auto rounded-lg border border-surface-800 bg-surface-950 p-4">
-                <pre class="text-xs text-surface-500"><code>{{ json_encode($report->results_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</code></pre>
-            </div>
+                <div
+                    class="rounded-xl border border-surface-800 bg-surface-900 overflow-hidden"
+                    x-data="{ open: {{ $catFail > 0 || $catWarn > 0 ? 'true' : 'false' }} }"
+                >
+                    {{-- Category Header --}}
+                    <button
+                        @click="open = !open"
+                        class="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-surface-800/50"
+                    >
+                        <div class="flex items-center gap-4">
+                            {{-- Category Icon --}}
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-800">
+                                @if ($meta['icon'] === 'shield')
+                                    <svg class="h-5 w-5 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                    </svg>
+                                @elseif ($meta['icon'] === 'code')
+                                    <svg class="h-5 w-5 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="16 18 22 12 16 6"/>
+                                        <polyline points="8 6 2 12 8 18"/>
+                                    </svg>
+                                @elseif ($meta['icon'] === 'star')
+                                    <svg class="h-5 w-5 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                    </svg>
+                                @elseif ($meta['icon'] === 'search')
+                                    <svg class="h-5 w-5 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="8"/>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                    </svg>
+                                @endif
+                            </div>
+
+                            <div>
+                                <h2 class="text-base font-semibold text-surface-50">
+                                    {{ $meta['label'] }}
+                                </h2>
+                                <p class="text-sm text-surface-400">
+                                    {{ $meta['description'] }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            {{-- Counts --}}
+                            @if (count($checks) > 0)
+                                <div class="hidden items-center gap-2 sm:flex">
+                                    @if ($catPass > 0)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                                            {{ $catPass }}
+                                            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                        </span>
+                                    @endif
+                                    @if ($catWarn > 0)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-400">
+                                            {{ $catWarn }}
+                                            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                                        </span>
+                                    @endif
+                                    @if ($catFail > 0)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-red-400/10 px-2 py-0.5 text-xs font-medium text-red-400">
+                                            {{ $catFail }}
+                                            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                        </span>
+                                    @endif
+                                </div>
+                            @endif
+
+                            {{-- Chevron --}}
+                            <svg
+                                class="h-5 w-5 text-surface-500 transition-transform duration-200"
+                                :class="open && 'rotate-180'"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </div>
+                    </button>
+
+                    {{-- Check List --}}
+                    <div
+                        x-show="open"
+                        x-collapse
+                    >
+                        <div class="border-t border-surface-800">
+                            @forelse ($checks as $checkIndex => $check)
+                                <div
+                                    class="{{ $checkIndex > 0 ? 'border-t border-surface-800/60' : '' }}"
+                                    x-data="{ expanded: false }"
+                                >
+                                    {{-- Check Row --}}
+                                    <div
+                                        class="flex items-start gap-3 px-6 py-4 {{ $check['suggestion'] ? 'cursor-pointer transition-colors hover:bg-surface-800/30' : '' }}"
+                                        @if ($check['suggestion'])
+                                            @click="expanded = !expanded"
+                                            role="button"
+                                            tabindex="0"
+                                            @keydown.enter="expanded = !expanded"
+                                            @keydown.space.prevent="expanded = !expanded"
+                                        @endif
+                                    >
+                                        {{-- Status Icon --}}
+                                        <div class="mt-0.5 shrink-0">
+                                            @if ($check['status'] === 'pass')
+                                                <div class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-400/10">
+                                                    <svg class="h-3.5 w-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                        <polyline points="20 6 9 17 4 12"/>
+                                                    </svg>
+                                                </div>
+                                            @elseif ($check['status'] === 'warn')
+                                                <div class="flex h-6 w-6 items-center justify-center rounded-full bg-amber-400/10">
+                                                    <svg class="h-3.5 w-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                                        <line x1="12" y1="9" x2="12" y2="13"/>
+                                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                                    </svg>
+                                                </div>
+                                            @else
+                                                <div class="flex h-6 w-6 items-center justify-center rounded-full bg-red-400/10">
+                                                    <svg class="h-3.5 w-3.5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10"/>
+                                                        <line x1="15" y1="9" x2="9" y2="15"/>
+                                                        <line x1="9" y1="9" x2="15" y2="15"/>
+                                                    </svg>
+                                                </div>
+                                            @endif
+                                        </div>
+
+                                        {{-- Check Details --}}
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <span class="text-sm font-medium text-surface-100">
+                                                    {{ $check['name'] }}
+                                                </span>
+
+                                                {{-- Severity Badge --}}
+                                                @if ($check['severity'] === 'required')
+                                                    <span class="rounded bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-surface-400">
+                                                        Required
+                                                    </span>
+                                                @elseif ($check['severity'] === 'recommended')
+                                                    <span class="rounded bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-surface-500">
+                                                        Recommended
+                                                    </span>
+                                                @endif
+
+                                                {{-- Episode aggregate badge --}}
+                                                @if (!empty($check['is_episode_check']) && !empty($check['episode_counts']))
+                                                    @php $ec = $check['episode_counts']; @endphp
+                                                    <span class="rounded bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">
+                                                        {{ $ec['total'] }} {{ Str::plural('episode', $ec['total']) }}
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            <p class="mt-1 text-sm text-surface-400">
+                                                {{ $check['message'] }}
+                                            </p>
+
+                                            {{-- Episode pass/warn/fail breakdown --}}
+                                            @if (!empty($check['is_episode_check']) && !empty($check['episode_counts']))
+                                                @php $ec = $check['episode_counts']; @endphp
+                                                <div class="mt-2 flex items-center gap-3">
+                                                    @if ($ec['pass'] > 0)
+                                                        <span class="inline-flex items-center gap-1 text-xs text-emerald-400">
+                                                            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                            {{ $ec['pass'] }} passed
+                                                        </span>
+                                                    @endif
+                                                    @if ($ec['warn'] > 0)
+                                                        <span class="inline-flex items-center gap-1 text-xs text-amber-400">
+                                                            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                                                            {{ $ec['warn'] }} warnings
+                                                        </span>
+                                                    @endif
+                                                    @if ($ec['fail'] > 0)
+                                                        <span class="inline-flex items-center gap-1 text-xs text-red-400">
+                                                            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                                            {{ $ec['fail'] }} failed
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        </div>
+
+                                        {{-- Expand indicator --}}
+                                        @if ($check['suggestion'])
+                                            <div class="mt-0.5 shrink-0">
+                                                <svg
+                                                    class="h-4 w-4 text-surface-600 transition-transform duration-150"
+                                                    :class="expanded && 'rotate-180'"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                >
+                                                    <polyline points="6 9 12 15 18 9"/>
+                                                </svg>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    {{-- Expandable Fix Suggestion --}}
+                                    @if ($check['suggestion'])
+                                        <div
+                                            x-show="expanded"
+                                            x-collapse
+                                        >
+                                            <div class="mx-6 mb-4 rounded-lg border border-surface-800 bg-surface-950 px-4 py-3">
+                                                <div class="flex items-start gap-2.5">
+                                                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10"/>
+                                                        <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+                                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                                    </svg>
+                                                    <div>
+                                                        <p class="text-xs font-medium text-surface-300">How to fix</p>
+                                                        <p class="mt-1 text-sm text-surface-400">
+                                                            {{ $check['suggestion'] }}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            @empty
+                                <div class="px-6 py-4">
+                                    <p class="text-sm text-surface-500">No checks in this category.</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            @endforeach
         </div>
 
         {{-- Back Link --}}
