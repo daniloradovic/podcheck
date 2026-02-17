@@ -37,7 +37,8 @@
                 method="POST"
                 action="{{ route('feed.check') }}"
                 class="mx-auto mt-10 max-w-2xl"
-                x-data="{ url: '{{ old('url') }}' }"
+                x-data="feedChecker()"
+                @submit="onSubmit"
             >
                 @csrf
 
@@ -52,26 +53,90 @@
                             value="{{ old('url') }}"
                             placeholder="https://feeds.example.com/your-podcast"
                             required
-                            class="block w-full rounded-lg border border-surface-700 bg-surface-900 px-4 py-3.5 text-surface-100 placeholder-surface-500 shadow-sm transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/25"
+                            :disabled="submitting"
+                            class="block w-full rounded-lg border border-surface-700 bg-surface-900 px-4 py-3.5 text-surface-100 placeholder-surface-500 shadow-sm transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/25 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                     </div>
 
                     <button
                         type="submit"
-                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-400/50 focus:ring-offset-2 focus:ring-offset-surface-950"
+                        :disabled="submitting"
+                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-400/50 focus:ring-offset-2 focus:ring-offset-surface-950 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-brand-500"
                     >
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        {{-- Default icon --}}
+                        <svg x-show="!submitting" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 18V5l12-2v13" />
                             <circle cx="6" cy="18" r="3" />
                             <circle cx="18" cy="16" r="3" />
                         </svg>
-                        Check Feed
+                        {{-- Spinner --}}
+                        <svg x-show="submitting" x-cloak class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span x-text="submitting ? 'Checking...' : 'Check Feed'"></span>
                     </button>
                 </div>
 
                 @error('url')
                     <p class="mt-2 text-sm text-red-400">{{ $message }}</p>
                 @enderror
+
+                {{-- Loading Progress Panel --}}
+                <div
+                    x-show="submitting"
+                    x-cloak
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 -translate-y-2"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    class="mt-6 overflow-hidden rounded-xl border border-surface-800 bg-surface-900"
+                >
+                    <div class="px-5 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="relative flex h-9 w-9 shrink-0 items-center justify-center">
+                                <svg class="h-9 w-9 animate-spin text-brand-400/30" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2.5"></circle>
+                                </svg>
+                                <svg class="absolute h-9 w-9 animate-spin text-brand-400" style="animation-duration: 1.5s" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 2a10 10 0 010 20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-surface-100" x-text="currentStepLabel"></p>
+                                <p class="mt-0.5 text-xs text-surface-500">This usually takes 5–15 seconds</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Progress steps --}}
+                    <div class="border-t border-surface-800 px-5 py-3">
+                        <div class="space-y-2.5">
+                            <template x-for="(step, index) in steps" :key="index">
+                                <div class="flex items-center gap-3 text-sm">
+                                    {{-- Step status icon --}}
+                                    <div class="flex h-5 w-5 shrink-0 items-center justify-center">
+                                        {{-- Completed --}}
+                                        <svg x-show="step.status === 'done'" x-cloak class="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                        {{-- Active --}}
+                                        <div x-show="step.status === 'active'" x-cloak class="h-2 w-2 rounded-full bg-brand-400 animate-pulse"></div>
+                                        {{-- Pending --}}
+                                        <div x-show="step.status === 'pending'" class="h-1.5 w-1.5 rounded-full bg-surface-600"></div>
+                                    </div>
+                                    <span
+                                        :class="{
+                                            'text-surface-100': step.status === 'active',
+                                            'text-surface-400': step.status === 'done',
+                                            'text-surface-600': step.status === 'pending',
+                                        }"
+                                        x-text="step.label"
+                                    ></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
             </form>
 
             {{-- Trust Indicators --}}
