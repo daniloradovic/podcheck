@@ -53,8 +53,9 @@
                             value="{{ old('url') }}"
                             placeholder="https://feeds.example.com/your-podcast"
                             required
-                            :disabled="submitting"
-                            class="block w-full rounded-lg border border-surface-700 bg-surface-900 px-4 py-3.5 text-surface-100 placeholder-surface-500 shadow-sm transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                            :readonly="submitting"
+                            :class="submitting && 'opacity-50 cursor-not-allowed'"
+                            class="block w-full rounded-lg border border-surface-700 bg-surface-900 px-4 py-3.5 text-surface-100 placeholder-surface-500 shadow-sm transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/25"
                         >
                     </div>
 
