@@ -138,6 +138,66 @@
         ];
     }
 
+    // --- Episode sampling summary data ---
+    $totalEpisodesInFeed = $report->results_json['total_episodes'] ?? count($episodes);
+    $sampledCount = count($episodes);
+
+    // Build per-episode summary (overall status per episode)
+    $episodeSummaries = [];
+    foreach ($episodes as $episode) {
+        $epPass = 0;
+        $epWarn = 0;
+        $epFail = 0;
+        foreach ($episode['results'] ?? [] as $r) {
+            match ($r['status']) {
+                'pass' => $epPass++,
+                'warn' => $epWarn++,
+                'fail' => $epFail++,
+                default => null,
+            };
+        }
+        $episodeSummaries[] = [
+            'title' => $episode['title'] ?? 'Untitled',
+            'guid' => $episode['guid'] ?? null,
+            'pass' => $epPass,
+            'warn' => $epWarn,
+            'fail' => $epFail,
+            'total' => $epPass + $epWarn + $epFail,
+            'overall_status' => $epFail > 0 ? 'fail' : ($epWarn > 0 ? 'warn' : 'pass'),
+        ];
+    }
+
+    // Build common issues (checks that fail/warn across multiple episodes)
+    $issueTracker = [];
+    foreach ($episodes as $episode) {
+        foreach ($episode['results'] ?? [] as $r) {
+            if ($r['status'] === 'pass') {
+                continue;
+            }
+            $name = $r['name'];
+            if (!isset($issueTracker[$name])) {
+                $issueTracker[$name] = [
+                    'name' => $name,
+                    'count' => 0,
+                    'status' => $r['status'],
+                    'message' => $r['message'],
+                    'suggestion' => $r['suggestion'],
+                ];
+            }
+            $issueTracker[$name]['count']++;
+            $statusPriority = ['warn' => 1, 'fail' => 2];
+            if (($statusPriority[$r['status']] ?? 0) > ($statusPriority[$issueTracker[$name]['status']] ?? 0)) {
+                $issueTracker[$name]['status'] = $r['status'];
+                $issueTracker[$name]['message'] = $r['message'];
+                if ($r['suggestion']) {
+                    $issueTracker[$name]['suggestion'] = $r['suggestion'];
+                }
+            }
+        }
+    }
+    // Sort by count descending
+    usort($issueTracker, fn ($a, $b) => $b['count'] <=> $a['count']);
+
     // Build SEO category from seo_score details
     $seoScore = $report->results_json['seo_score'] ?? null;
     $seoPass = 0;
@@ -725,6 +785,174 @@
                 </div>
             @endforeach
         </div>
+
+        {{-- Episode Sampling Summary --}}
+        @if ($sampledCount > 0)
+            <div class="mt-8 rounded-xl border border-surface-800 bg-surface-900 overflow-hidden">
+
+                {{-- Section Header --}}
+                <div class="flex items-center justify-between gap-4 px-6 py-5 border-b border-surface-800">
+                    <div class="flex items-center gap-4">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-800">
+                            {{-- Headphones / episodes icon --}}
+                            <svg class="h-5 w-5 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 18v-6a9 9 0 0118 0v6"/>
+                                <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-semibold text-surface-50">
+                                Episodes Sampled
+                            </h2>
+                            <p class="text-sm text-surface-400">
+                                @if ($totalEpisodesInFeed > $sampledCount)
+                                    {{ $sampledCount }} of {{ $totalEpisodesInFeed }} episodes checked
+                                @else
+                                    All {{ $sampledCount }} {{ Str::plural('episode', $sampledCount) }} checked
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- Episode pass/warn/fail overview --}}
+                    @php
+                        $allEpPass = collect($episodeSummaries)->where('overall_status', 'pass')->count();
+                        $allEpWarn = collect($episodeSummaries)->where('overall_status', 'warn')->count();
+                        $allEpFail = collect($episodeSummaries)->where('overall_status', 'fail')->count();
+                    @endphp
+                    <div class="hidden items-center gap-2 sm:flex">
+                        @if ($allEpPass > 0)
+                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                                {{ $allEpPass }}
+                                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            </span>
+                        @endif
+                        @if ($allEpWarn > 0)
+                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-400">
+                                {{ $allEpWarn }}
+                                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                            </span>
+                        @endif
+                        @if ($allEpFail > 0)
+                            <span class="inline-flex items-center gap-1 rounded-full bg-red-400/10 px-2 py-0.5 text-xs font-medium text-red-400">
+                                {{ $allEpFail }}
+                                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                            </span>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Common Issues Across Episodes --}}
+                @if (count($issueTracker) > 0)
+                    <div class="border-b border-surface-800 px-6 py-4">
+                        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-500">
+                            Common Issues
+                        </h3>
+                        <div class="space-y-2">
+                            @foreach ($issueTracker as $issue)
+                                <div class="flex items-start gap-3 rounded-lg bg-surface-800/40 px-4 py-3">
+                                    {{-- Status Icon --}}
+                                    @if ($issue['status'] === 'fail')
+                                        <div class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-400/10">
+                                            <svg class="h-3 w-3 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                                            </svg>
+                                        </div>
+                                    @else
+                                        <div class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400/10">
+                                            <svg class="h-3 w-3 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                                            </svg>
+                                        </div>
+                                    @endif
+
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-medium text-surface-200">{{ $issue['name'] }}</span>
+                                            <span class="rounded bg-surface-700 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">
+                                                {{ $issue['count'] }} {{ Str::plural('episode', $issue['count']) }}
+                                            </span>
+                                        </div>
+                                        @if ($issue['suggestion'])
+                                            <p class="mt-1 text-xs text-surface-500">{{ $issue['suggestion'] }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Episode List --}}
+                <div class="px-6 py-4" x-data="{ showAll: false }">
+                    <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-500">
+                        Checked Episodes
+                    </h3>
+                    <div class="space-y-1.5">
+                        @foreach ($episodeSummaries as $epIndex => $ep)
+                            <div
+                                class="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-surface-800/40"
+                                x-show="showAll || {{ $epIndex }} < 5"
+                                x-transition
+                            >
+                                {{-- Episode status dot --}}
+                                @if ($ep['overall_status'] === 'pass')
+                                    <div class="h-2 w-2 shrink-0 rounded-full bg-emerald-400"></div>
+                                @elseif ($ep['overall_status'] === 'warn')
+                                    <div class="h-2 w-2 shrink-0 rounded-full bg-amber-400"></div>
+                                @else
+                                    <div class="h-2 w-2 shrink-0 rounded-full bg-red-400"></div>
+                                @endif
+
+                                {{-- Title --}}
+                                <span class="min-w-0 flex-1 truncate text-sm text-surface-300">
+                                    {{ $ep['title'] }}
+                                </span>
+
+                                {{-- Per-episode check counts --}}
+                                <div class="flex shrink-0 items-center gap-2 text-xs">
+                                    @if ($ep['pass'] > 0)
+                                        <span class="text-emerald-400">{{ $ep['pass'] }}</span>
+                                    @endif
+                                    @if ($ep['warn'] > 0)
+                                        <span class="text-amber-400">{{ $ep['warn'] }}</span>
+                                    @endif
+                                    @if ($ep['fail'] > 0)
+                                        <span class="text-red-400">{{ $ep['fail'] }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Show more / less toggle --}}
+                    @if ($sampledCount > 5)
+                        <button
+                            @click="showAll = !showAll"
+                            class="mt-3 w-full rounded-lg border border-surface-800 py-2 text-center text-xs font-medium text-surface-400 transition-colors hover:border-surface-700 hover:text-surface-300"
+                        >
+                            <span x-show="!showAll">Show all {{ $sampledCount }} episodes</span>
+                            <span x-show="showAll" x-cloak>Show fewer</span>
+                        </button>
+                    @endif
+                </div>
+
+                {{-- Note about sampling --}}
+                @if ($totalEpisodesInFeed > $sampledCount)
+                    <div class="border-t border-surface-800 px-6 py-3">
+                        <p class="text-center text-xs text-surface-500">
+                            <svg class="mr-1 -mt-0.5 inline h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            Only the {{ $sampledCount }} most recent episodes are checked. Your feed contains {{ $totalEpisodesInFeed }} {{ Str::plural('episode', $totalEpisodesInFeed) }} total.
+                        </p>
+                    </div>
+                @endif
+            </div>
+        @endif
 
         {{-- Back Link --}}
         <div class="mt-8 text-center">

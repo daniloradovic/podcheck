@@ -60,6 +60,7 @@ class FeedCheckController extends Controller
                 'feed_format' => $feed->getName() === 'rss' ? 'RSS 2.0' : 'Atom',
                 'checked_at' => now()->toIso8601String(),
                 'artwork_url' => $this->extractArtworkUrl($feed),
+                'total_episodes' => $this->countTotalEpisodes($feed),
                 'summary' => $summary,
                 'health_score' => $healthScore->toArray(),
                 'seo_score' => $seoScore->toArray(),
@@ -96,6 +97,27 @@ class FeedCheckController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Count total episode items in the feed (not capped).
+     */
+    private function countTotalEpisodes(SimpleXMLElement $feed): int
+    {
+        if ($feed->getName() === 'rss' && isset($feed->channel->item)) {
+            return count($feed->channel->item);
+        }
+
+        if ($feed->getName() === 'feed') {
+            $namespaces = $feed->getNamespaces(true);
+            $children = isset($namespaces['']) ? $feed->children($namespaces['']) : $feed;
+
+            if (isset($children->entry)) {
+                return count($children->entry);
+            }
+        }
+
+        return 0;
     }
 
     /**

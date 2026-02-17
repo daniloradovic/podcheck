@@ -5,8 +5,8 @@ Reference this file at the start of each Cursor session to know where you are.
 
 ## Current Status
 - **Phase**: 5 — Results UI
-- **Current Task**: TASK 20
-- **Last Completed**: TASK 19
+- **Current Task**: TASK 21
+- **Last Completed**: TASK 20
 
 ---
 
@@ -38,7 +38,7 @@ Reference this file at the start of each Cursor session to know where you are.
 - [x] TASK 17 — Report page header + score badge
 - [x] TASK 18 — Check results list UI
 - [x] TASK 19 — Category score cards
-- [ ] TASK 20 — Episode sampling summary
+- [x] TASK 20 — Episode sampling summary
 - [ ] TASK 21 — Polish landing page
 
 ## Phase 6: Polish & Ship
@@ -70,3 +70,4 @@ Reference this file at the start of each Cursor session to know where you are.
 - **TASK 17**: Redesigned the report page header for Phase 5 Results UI. Added `extractArtworkUrl()` to `FeedCheckController` following the same pattern as `ArtworkCheck`, stores `artwork_url` in `results_json` for display. Report header now features: podcast artwork thumbnail with graceful fallback when unavailable or broken, podcast title and feed URL, metadata bar (checked time, feed format, total checks count), animated circular SVG score ring (Alpine.js `x-init` animates stroke-dashoffset on load) color-coded by tier (green/emerald 80+, amber/yellow 50-79, red <50), score label badge ("Great"/"Needs Work"/"Critical"), status message bar, and pass/warn/fail summary counts with icons. Responsive layout stacks vertically on mobile, side-by-side on desktop. Kept raw JSON dump as placeholder for Tasks 18-20. All 302 tests pass, Pint clean.
 - **TASK 19**: Added category score breakdown cards between the report header and check results list. Row of 4 cards (Compliance, Technical, Best Practices, SEO) in a responsive 2-column mobile / 4-column desktop grid. Each card shows: category icon and label, animated mini SVG score ring (color-coded by tier: emerald 80+, amber 50-79, red <50) with Alpine.js stroke animation on load, and pass/warn/fail icon counts. Compliance/Technical/Best Practices cards pull scores and counts from `health_score.categories`. SEO card uses `seo_score.overall` for the score and derives pass/warn/fail from `seo_score.details` statuses. Cards use consistent design language with the rest of the report (surface-900 background, surface-800 borders, brand-400 icons). All 302 tests pass, Pint clean.
 - **TASK 18**: Built the check results list UI replacing the raw JSON placeholder. Checks are grouped into 4 collapsible category sections: **Compliance** (shield icon — Apple/Spotify directory requirements), **Technical** (code icon — feed structure/metadata), **Best Practices** (star icon — quality recommendations), and **SEO** (search icon — title/description optimization). Channel checks display individually with status icon (green check/amber warning/red X), check name, severity badge (Required/Recommended), and message. Episode checks are aggregated by check type showing worst-case status, per-episode pass/warn/fail breakdown, and episode count badge. SEO section pulls from `seo_score` details (Show Title, Show Description, Episode Titles). Each check with a suggestion is expandable via Alpine.js `x-collapse` (installed `@alpinejs/collapse` plugin) to reveal a "How to fix" panel with actionable guidance. Categories with issues auto-expand; all-passing categories start collapsed. Category headers show pass/warn/fail count pills. Full keyboard accessibility with tabindex, Enter, and Space handlers on expandable rows. All 302 tests pass, Pint clean.
+- **TASK 20**: Added episode sampling summary section to the report page between check results and back link. Added `countTotalEpisodes()` to `FeedCheckController` to store the total episode count in the feed (not just the capped-at-10 sampled count) in `results_json['total_episodes']`. Section has three parts: **Header** with headphones icon, "Episodes Sampled" title, count string ("X of Y episodes checked" vs "All X episodes checked"), and overall episode pass/warn/fail pills. **Common Issues** panel aggregating non-passing check types across all sampled episodes, sorted by frequency, showing issue name, affected episode count badge, and suggestion text. **Checked Episodes** list showing each episode title with a colored status dot (green/amber/red based on worst check result), and per-episode pass/warn/fail counts. Episodes beyond 5 are hidden behind an Alpine.js "Show all" toggle. When feed has more episodes than sampled, a footer note explains the 10-episode sampling limit. Section hidden when no episodes exist. Wrote 6 feature tests covering: total_episodes stored, section renders, episode titles displayed, correct count text, hidden when empty, and sampling limit text for large feeds. All 308 tests pass, Pint clean.

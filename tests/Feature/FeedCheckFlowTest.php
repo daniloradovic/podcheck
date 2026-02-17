@@ -303,6 +303,152 @@ test('overall score is non-zero for valid well-formed feed', function () {
 });
 
 // ──────────────────────────────────────────────────
+// Episode Sampling Summary
+// ──────────────────────────────────────────────────
+
+test('it stores total episode count in results_json', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+
+    expect($report->results_json)->toHaveKey('total_episodes')
+        ->and($report->results_json['total_episodes'])->toBe(3);
+});
+
+test('report page displays episode sampling summary section', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $response = $this->get(route('report.show', $report));
+
+    $response->assertOk();
+    $response->assertSee('Episodes Sampled');
+    $response->assertSee('Checked Episodes');
+});
+
+test('episode sampling summary shows all episode titles', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $response = $this->get(route('report.show', $report));
+
+    $response->assertOk();
+    $response->assertSee('Episode 1: Getting Started');
+    $response->assertSee('Episode 2: Advanced Validation');
+    $response->assertSee('Episode 3: SEO for Podcasters');
+});
+
+test('episode sampling summary shows correct count when all episodes checked', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    $response = $this->get(route('report.show', $report));
+
+    $response->assertOk();
+    $response->assertSee('All 3 episodes checked');
+});
+
+test('episode sampling summary is hidden when no episodes exist', function () {
+    $report = FeedReport::create([
+        'feed_url' => 'https://example.com/feed.xml',
+        'feed_title' => 'Empty Podcast',
+        'overall_score' => 50,
+        'results_json' => [
+            'feed_format' => 'RSS 2.0',
+            'total_episodes' => 0,
+            'summary' => ['total' => 0, 'pass' => 0, 'warn' => 0, 'fail' => 0],
+            'channel' => [],
+            'episodes' => [],
+        ],
+    ]);
+
+    $response = $this->get(route('report.show', $report));
+
+    $response->assertOk();
+    $response->assertDontSee('Episodes Sampled');
+});
+
+test('total episode count is stored correctly and differs from sampled when feed has many episodes', function () {
+    // Create a feed fixture with 12 episodes
+    $episodeItems = '';
+    for ($i = 1; $i <= 12; $i++) {
+        $episodeItems .= <<<XML
+        <item>
+            <title>Episode {$i}: Test Title</title>
+            <description>Episode {$i} description content here.</description>
+            <enclosure url="https://example.com/ep{$i}.mp3" length="1234" type="audio/mpeg"/>
+            <guid isPermaLink="false">ep-{$i}</guid>
+            <pubDate>Mon, 10 Feb 2025 08:00:00 +0000</pubDate>
+            <itunes:duration>00:30:00</itunes:duration>
+        </item>
+        XML;
+    }
+
+    $feedXml = <<<XML
+    <?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+      <channel>
+        <title>Big Podcast</title>
+        <link>https://example.com</link>
+        <description>A podcast with many episodes for testing sampling limits.</description>
+        <language>en</language>
+        <itunes:author>Test Author</itunes:author>
+        <itunes:explicit>false</itunes:explicit>
+        <itunes:image href="https://example.com/art.jpg"/>
+        <itunes:category text="Technology"/>
+        <itunes:owner>
+            <itunes:name>Test</itunes:name>
+            <itunes:email>test@example.com</itunes:email>
+        </itunes:owner>
+        {$episodeItems}
+      </channel>
+    </rss>
+    XML;
+
+    Http::fake([
+        'example.com/*' => Http::response($feedXml, 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+
+    expect($report->results_json['total_episodes'])->toBe(12)
+        ->and($report->results_json['episodes'])->toHaveCount(10);
+
+    $response = $this->get(route('report.show', $report));
+    $response->assertOk();
+    $response->assertSee('10 of 12 episodes checked');
+    $response->assertSee('Your feed contains 12 episodes total');
+});
+
+// ──────────────────────────────────────────────────
 // POST /check — Validation Errors
 // ──────────────────────────────────────────────────
 
