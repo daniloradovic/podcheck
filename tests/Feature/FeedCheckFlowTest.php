@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\FeedReport;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 // ──────────────────────────────────────────────────
@@ -446,6 +447,200 @@ test('total episode count is stored correctly and differs from sampled when feed
     $response->assertOk();
     $response->assertSee('10 of 12 episodes checked');
     $response->assertSee('Your feed contains 12 episodes total');
+});
+
+// ──────────────────────────────────────────────────
+// POST /check — Caching
+// ──────────────────────────────────────────────────
+
+test('submitting same URL twice redirects to the cached report', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    // First submission — creates a new report
+    $firstResponse = $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+    expect($report)->not->toBeNull();
+    $firstResponse->assertRedirect(route('report.show', $report));
+
+    // Second submission — should redirect to the same report (cached)
+    $secondResponse = $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $secondResponse->assertRedirect(route('report.show', $report));
+    $secondResponse->assertSessionHas('cached_result', true);
+
+    // Only one report should exist
+    expect(FeedReport::count())->toBe(1);
+});
+
+test('cached report does not re-fetch the feed', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    // First request — makes HTTP calls for fetch + validation
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $callsAfterFirst = count(Http::recorded());
+
+    // Second request — should not make any additional HTTP calls (served from cache)
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    expect(count(Http::recorded()))->toBe($callsAfterFirst);
+});
+
+test('different URLs create separate reports', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+        'other.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+    $this->post(route('feed.check'), [
+        'url' => 'https://other.com/feed.xml',
+    ]);
+
+    expect(FeedReport::count())->toBe(2);
+});
+
+test('cache expires after 1 hour and creates new report', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    // First submission
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    expect(FeedReport::count())->toBe(1);
+    $firstReport = FeedReport::first();
+
+    // Travel forward 61 minutes — past the 1-hour cache window
+    $this->travel(61)->minutes();
+
+    // Second submission — cache expired, should create a new report
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    expect(FeedReport::count())->toBe(2);
+
+    $secondReport = FeedReport::latest('id')->first();
+    expect($secondReport->slug)->not->toBe($firstReport->slug);
+});
+
+test('force re-check bypasses cache and creates new report', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    // First submission
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    expect(FeedReport::count())->toBe(1);
+
+    // Force re-check — should bypass cache
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+        'force' => '1',
+    ]);
+
+    expect(FeedReport::count())->toBe(2);
+});
+
+test('force re-check does not flash cached_result to session', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $response = $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+        'force' => '1',
+    ]);
+
+    $response->assertSessionMissing('cached_result');
+});
+
+test('cached result shows notice banner on report page', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    // First submission
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    // Second submission — cached, should flash cached_result
+    $response = $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    // Assert redirect has the flash before following it
+    $response->assertSessionHas('cached_result', true);
+
+    // Follow the redirect — the flash data renders the banner
+    $report = FeedReport::first();
+    $reportPage = $this->get(route('report.show', $report));
+    $reportPage->assertSee('Cached result');
+});
+
+test('report page without cached_result session does not show notice', function () {
+    $report = FeedReport::create([
+        'feed_url' => 'https://example.com/feed.xml',
+        'feed_title' => 'Test Podcast',
+        'overall_score' => 85,
+        'results_json' => ['feed_format' => 'RSS 2.0'],
+    ]);
+
+    $response = $this->get(route('report.show', $report));
+
+    $response->assertOk();
+    $response->assertDontSee('Cached result');
+});
+
+test('database fallback finds recent report when cache is empty', function () {
+    Http::fake([
+        'example.com/*' => Http::response(rssFixture(), 200),
+    ]);
+
+    // First submission — creates report and caches it
+    $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $report = FeedReport::first();
+
+    // Clear the cache (simulating cache eviction)
+    Cache::flush();
+
+    // Second submission — cache is empty, but DB fallback should find the report
+    $response = $this->post(route('feed.check'), [
+        'url' => 'https://example.com/feed.xml',
+    ]);
+
+    $response->assertRedirect(route('report.show', $report));
+    $response->assertSessionHas('cached_result', true);
+    expect(FeedReport::count())->toBe(1);
 });
 
 // ──────────────────────────────────────────────────

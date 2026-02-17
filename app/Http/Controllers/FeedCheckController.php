@@ -12,6 +12,7 @@ use App\Services\Scoring\HealthScorer;
 use App\Services\Scoring\SeoScorer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 use SimpleXMLElement;
 
@@ -42,6 +43,17 @@ class FeedCheckController extends Controller
         ]);
 
         $url = $validated['url'];
+
+        // Check for a cached recent report (skip if force re-check requested)
+        if (! $request->boolean('force')) {
+            $cachedReport = $this->findCachedReport($url);
+            if ($cachedReport) {
+                return redirect()->route('report.show', $cachedReport)
+                    ->with('cached_result', true);
+            }
+        } else {
+            Cache::forget(self::cacheKey($url));
+        }
 
         try {
             $feed = $this->feedFetcher->fetch($url);
@@ -77,6 +89,8 @@ class FeedCheckController extends Controller
                 ],
             ]);
 
+            $this->cacheReport($url, $report->slug);
+
             return redirect()->route('report.show', $report);
         } catch (\Throwable $e) {
             report($e);
@@ -87,6 +101,55 @@ class FeedCheckController extends Controller
                 ->with('error_type', 'unexpected')
                 ->withErrors(['url' => 'Something went wrong while analyzing the feed. Please try again.']);
         }
+    }
+
+    /**
+     * Find a cached report for the given URL (valid within the last hour).
+     */
+    private function findCachedReport(string $url): ?FeedReport
+    {
+        $cacheKey = self::cacheKey($url);
+
+        // Fast path: check the cache for a slug
+        $cachedSlug = Cache::get($cacheKey);
+        if ($cachedSlug) {
+            $report = FeedReport::where('slug', $cachedSlug)->first();
+            if ($report) {
+                return $report;
+            }
+            // Stale cache entry — report was deleted
+            Cache::forget($cacheKey);
+        }
+
+        // Fallback: query database for a recent report
+        $report = FeedReport::where('feed_url', $url)
+            ->where('created_at', '>=', now()->subHour())
+            ->latest()
+            ->first();
+
+        if ($report) {
+            $this->cacheReport($url, $report->slug);
+
+            return $report;
+        }
+
+        return null;
+    }
+
+    /**
+     * Store a URL → report slug mapping in the cache for 1 hour.
+     */
+    private function cacheReport(string $url, string $slug): void
+    {
+        Cache::put(self::cacheKey($url), $slug, now()->addHour());
+    }
+
+    /**
+     * Generate a consistent cache key for a feed URL.
+     */
+    private static function cacheKey(string $url): string
+    {
+        return 'feed_report:'.sha1($url);
     }
 
     public function show(FeedReport $report): View

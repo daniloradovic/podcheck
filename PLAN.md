@@ -5,8 +5,8 @@ Reference this file at the start of each Cursor session to know where you are.
 
 ## Current Status
 - **Phase**: 6 — Polish & Ship
-- **Current Task**: TASK 24
-- **Last Completed**: TASK 23
+- **Current Task**: TASK 25
+- **Last Completed**: TASK 24
 
 ---
 
@@ -44,7 +44,7 @@ Reference this file at the start of each Cursor session to know where you are.
 ## Phase 6: Polish & Ship
 - [x] TASK 22 — Loading state
 - [x] TASK 23 — Error handling UI
-- [ ] TASK 24 — Caching
+- [x] TASK 24 — Caching
 - [ ] TASK 25 — Meta tags + OG image
 - [ ] TASK 26 — README
 - [ ] TASK 27 — Deploy
@@ -74,3 +74,4 @@ Reference this file at the start of each Cursor session to know where you are.
 - **TASK 21**: Polished the landing page
 - **TASK 22**: Added loading state for feed checking using Alpine.js. Form `x-data` uses a `feedChecker()` component with `submitting` state, animated step progression, and double-submit prevention. On submit: button swaps to spinner with "Checking..." text, input and button get disabled, and a progress panel slides in below the form showing 5 animated steps (Fetching RSS feed, Parsing feed data, Running validation checks, Analyzing SEO & scoring, Generating report) that advance with timed transitions — each step shows pending/active/done states with appropriate icons and colors. Added `[x-cloak]` CSS rule to prevent flash of loading elements before Alpine initializes. The loading state covers the full server-side processing time (feed fetch, validation, scoring, report creation) until the browser navigates to the report page. All 308 tests pass, Pint clean.
 - **TASK 23**: Added comprehensive user-facing error handling UI. **FeedFetchException**: added `errorType` readonly property categorizing errors into `invalid_url`, `unreachable` (timeout, 404, SSL, connection, server errors, empty response), and `not_podcast` (not XML, not RSS/Atom). **FeedCheckController**: flashes `error_type` to session alongside error message; added try/catch for unexpected exceptions during validation/scoring pipeline (logs via `report()`, redirects with `unexpected` error type). **Error Alert UI**: replaced plain red text `@error` with rich categorized error panel — each type has distinct icon (wifi-off, file-x, link-off, alert-circle), title ("Feed Unreachable", "Not a Podcast Feed", "Invalid URL", "Something Went Wrong"), color (amber for unreachable, red for others), and actionable suggestions list. Alert is dismissible via X button with Alpine.js transition. Input field gets red border highlight when errors are present. **Alpine.js**: added `resetState()` method and `pageshow` event listener to reset loading state on back-navigation (bfcache) and on error redirect (detects `data-has-errors` marker). Wrote 11 new Pest feature tests covering: unreachable feed error UI, non-XML "Not a Podcast Feed" error, non-RSS XML error, server error type, validation error display, dismiss button markup, URL preservation, red border styling, clean state on success, clean home page, and `data-has-errors` marker. All 319 tests pass, Pint clean.
+- **TASK 24**: Added result caching by feed URL. **Cache strategy**: two-tier lookup — Laravel Cache (file store for MVP) for fast slug lookup, with database fallback querying `feed_reports` for recent reports (within 1 hour) by URL. On cache hit, redirects to existing report without re-fetching or re-validating the feed. On new report creation, caches URL → slug mapping for 1 hour. **Force re-check**: supports `force` parameter to bypass cache, clears cached entry and creates a fresh report. **Cached result UI**: report page shows a dismissible banner when served from cache, displaying when the report was originally generated with a "Re-check now" button (form POST with `force=1`) to generate a fresh report. Changed `.env` `CACHE_STORE` from `database` to `file` per spec ("File cache for MVP"). Wrote 9 new Pest feature tests covering: same URL redirects to cached report, no additional HTTP calls on cache hit, different URLs create separate reports, cache expiry after 1 hour creates new report, force re-check bypasses cache, force re-check doesn't flash cached_result, cached result banner display, no banner without cached_result session, and database fallback when cache is empty. All 328 tests pass, Pint clean.

@@ -269,6 +269,46 @@
 @section('content')
     <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
 
+        {{-- Cached Result Notice --}}
+        @if (session('cached_result'))
+            <div
+                class="mb-6 flex items-center justify-between gap-4 rounded-xl border border-brand-400/20 bg-brand-400/5 px-5 py-3"
+                x-data="{ show: true }"
+                x-show="show"
+                x-transition
+            >
+                <div class="flex items-center gap-3">
+                    <svg class="h-4.5 w-4.5 shrink-0 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <p class="text-sm text-surface-300">
+                        <span class="font-medium text-surface-200">Cached result</span>
+                        — This report was generated {{ $report->created_at->diffForHumans() }}. Results are cached for 1 hour.
+                    </p>
+                </div>
+                <div class="flex shrink-0 items-center gap-3">
+                    <form method="POST" action="{{ route('feed.check') }}" class="inline">
+                        @csrf
+                        <input type="hidden" name="url" value="{{ $report->feed_url }}">
+                        <input type="hidden" name="force" value="1">
+                        <button type="submit" class="text-xs font-medium text-brand-400 transition-colors hover:text-brand-300">
+                            Re-check now
+                        </button>
+                    </form>
+                    <button
+                        @click="show = false"
+                        class="text-surface-500 transition-colors hover:text-surface-300"
+                        aria-label="Dismiss notice"
+                    >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        @endif
+
         {{-- Report Header --}}
         <div class="rounded-xl border border-surface-800 bg-surface-900 p-6 sm:p-8">
             <div class="flex flex-col items-center gap-8 lg:flex-row lg:items-start">
