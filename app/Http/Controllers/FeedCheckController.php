@@ -59,6 +59,7 @@ class FeedCheckController extends Controller
             'results_json' => [
                 'feed_format' => $feed->getName() === 'rss' ? 'RSS 2.0' : 'Atom',
                 'checked_at' => now()->toIso8601String(),
+                'artwork_url' => $this->extractArtworkUrl($feed),
                 'summary' => $summary,
                 'health_score' => $healthScore->toArray(),
                 'seo_score' => $seoScore->toArray(),
@@ -92,6 +93,39 @@ class FeedCheckController extends Controller
             $title = (string) $feed->title;
 
             return $title !== '' ? $title : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract the artwork image URL from the feed's itunes:image element.
+     */
+    private function extractArtworkUrl(SimpleXMLElement $feed): ?string
+    {
+        $namespaces = $feed->getNamespaces(true);
+        $itunesNs = $namespaces['itunes'] ?? 'http://www.itunes.com/dtds/podcast-1.0.dtd';
+
+        // RSS 2.0: <rss><channel><itunes:image href="..."/>
+        if ($feed->getName() === 'rss' && isset($feed->channel)) {
+            $itunes = $feed->channel->children($itunesNs);
+
+            if (isset($itunes->image)) {
+                $href = (string) $itunes->image->attributes()['href'];
+
+                return $href !== '' ? $href : null;
+            }
+        }
+
+        // Atom: <feed><itunes:image href="..."/>
+        if ($feed->getName() === 'feed') {
+            $itunes = $feed->children($itunesNs);
+
+            if (isset($itunes->image)) {
+                $href = (string) $itunes->image->attributes()['href'];
+
+                return $href !== '' ? $href : null;
+            }
         }
 
         return null;
