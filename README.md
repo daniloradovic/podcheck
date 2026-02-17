@@ -4,7 +4,7 @@
 
 PodCheck is a free web tool where podcasters paste their RSS feed URL and get an instant health report: validation against Apple/Spotify/Google specs, SEO scoring for titles and descriptions, artwork checks, and actionable fix suggestions.
 
-> **Live Demo:** *Coming soon — deployment in progress*
+> **Live Demo:** [www.podcheck.dev](https://www.podcheck.dev)
 
 ---
 
@@ -40,24 +40,32 @@ Show title length & keyword stuffing, show description quality, episode title de
 | Build | [Vite](https://vitejs.dev) |
 | Database | SQLite (dev) / MySQL (prod) |
 | Cache | File-based (MVP) |
-| Testing | [Pest PHP](https://pestphp.com) (335 tests, 985 assertions) |
+| Testing | [Pest PHP](https://pestphp.com) (335+ tests) |
+| Deployment | [Docker](https://www.docker.com) + [Railway](https://railway.com) |
 
 ---
 
 ## Screenshots
 
-> *Screenshots will be added after deployment.*
+> Visit [www.podcheck.dev](https://www.podcheck.dev) to see it live, or add your own screenshots to `docs/screenshots/` and reference them here.
 
-<!-- Uncomment and update paths after capturing screenshots:
-### Landing Page
-![Landing page with feed URL input](docs/screenshots/landing.png)
+---
 
-### Report — Score Overview
-![Report header with health score badge](docs/screenshots/report-header.png)
+## Deployment
 
-### Report — Check Results
-![Grouped check results with expandable details](docs/screenshots/report-checks.png)
--->
+PodCheck is deployed on [Railway](https://railway.com) using a multi-stage Docker build.
+
+**Infrastructure:**
+- **App**: Docker container (PHP 8.3 FPM + nginx) on Railway
+- **Database**: MySQL on Railway
+- **Domain**: [www.podcheck.dev](https://www.podcheck.dev) via GoDaddy DNS
+
+**How it works:**
+- The `Dockerfile` uses a two-stage build: Node.js 20 compiles Vite assets, then the PHP 8.3 FPM image serves the app with nginx
+- The `docker/entrypoint.sh` runs migrations and caches config/routes/views on each deploy
+- Railway environment variables configure the database, logging, and app settings
+
+To deploy your own instance, see the Railway production overrides documented in [`.env.example`](.env.example).
 
 ---
 
