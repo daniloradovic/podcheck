@@ -37,7 +37,7 @@ RUN mkdir -p storage/framework/{sessions,views,cache} \
     && mkdir -p bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
-COPY docker/nginx.conf /etc/nginx/sites-available/default
+COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/php.ini /usr/local/etc/php/conf.d/app.ini
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
