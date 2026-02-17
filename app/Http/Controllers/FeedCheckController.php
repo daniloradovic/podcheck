@@ -26,7 +26,13 @@ class FeedCheckController extends Controller
 
     public function index(): View
     {
-        return view('home');
+        $exampleReport = FeedReport::query()
+            ->whereNotNull('feed_title')
+            ->where('overall_score', '>', 0)
+            ->latest()
+            ->first();
+
+        return view('home', compact('exampleReport'));
     }
 
     public function check(Request $request): RedirectResponse
