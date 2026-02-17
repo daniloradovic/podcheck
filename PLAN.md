@@ -5,8 +5,8 @@ Reference this file at the start of each Cursor session to know where you are.
 
 ## Current Status
 - **Phase**: 6 — Polish & Ship
-- **Current Task**: TASK 28
-- **Last Completed**: TASK 27
+- **Current Task**: Done — all tasks complete!
+- **Last Completed**: TASK 28
 
 ---
 
@@ -48,7 +48,7 @@ Reference this file at the start of each Cursor session to know where you are.
 - [x] TASK 25 — Meta tags + OG image
 - [x] TASK 26 — README
 - [x] TASK 27 — Deploy
-- [ ] TASK 28 — Launch post
+- [x] TASK 28 — Launch post
 
 ---
 
@@ -78,3 +78,4 @@ Reference this file at the start of each Cursor session to know where you are.
 - **TASK 25**: Added meta tags and Open Graph data for shareable reports. **Layout (`app.blade.php`)**: added `@yield` sections for all meta properties so child views can override: `title`, `meta_description`, `og_type`, `og_title`, `og_description`, `og_url`, `og_image`, `twitter_card`, `canonical_url`. Default values set for the landing page (type: website, PodCheck branding). `og:image` and `twitter:image` only render when a child view defines the `og_image` section (via `@hasSection`). Added `og:site_name` (always "PodCheck") and `<link rel="canonical">`. **Home page**: inherits defaults — description about free podcast feed health checker, type "website", summary Twitter card. **Report page**: dynamic OG title "PodCheck Report: [Podcast Name] — Score: N/100", dynamic description with podcast name and score, type "article", `summary_large_image` Twitter card, canonical URL to the report's permalink, and `og:image` set to the podcast artwork URL when available. Gracefully handles missing feed titles (falls back to "Feed Report" / "this podcast"). Wrote 7 new Pest feature tests covering: home page default meta/OG tags, no og:image on home, dynamic OG title with name and score on report, OG type/URL/Twitter card on report, meta description with name and score, og:image when artwork available, and graceful handling of null feed title in meta. All 335 tests pass, Pint clean.
 - **TASK 26**: Replaced the default Laravel README with a comprehensive project README. Covers: project description, feature list (14 channel/episode checks, SEO analysis, artwork analyzer, caching, shareable reports), full tech stack table, prerequisites and step-by-step installation/run instructions, test commands, architecture overview with directory tree and "How It Works" pipeline explanation, contributing guidelines, and MIT license. Includes placeholder sections for live demo link and screenshots (to be added after deployment in Task 27).
 - **TASK 27**: Prepared Railway deployment configuration. Created `railway/init-app.sh` pre-deploy script (runs migrations, caches config/routes/views). Updated `.env.example` with `APP_NAME=PodCheck`, `CACHE_STORE=file`, and a commented Railway production overrides section documenting all required env vars (`APP_ENV=production`, `DB_CONNECTION=mysql`, `DB_URL`, `LOG_CHANNEL=stderr`, `LOG_STDERR_FORMATTER`, `NIXPACKS_PHP_ROOT_DIR=/app/public`). Railway setup: create project linked to GitHub repo, add MySQL plugin, set Custom Build Command to `npm run build`, set Pre-Deploy Command to `chmod +x ./railway/init-app.sh && sh ./railway/init-app.sh`, configure env vars in dashboard, generate public domain.
+- **TASK 28**: Updated README with live demo URL (www.podcheck.dev), replaced screenshots placeholder with link to live site, added Deployment section documenting Docker + Railway infrastructure, and added Deployment row to tech stack table. Drafted LinkedIn launch post and Laravel Discord community message.
