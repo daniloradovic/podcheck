@@ -52,7 +52,7 @@
                     </a>
 
                     <a
-                        href="https://github.com"
+                        href="https://github.com/daniloradovic/podcheck"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="text-sm text-surface-400 transition-colors hover:text-surface-200"
