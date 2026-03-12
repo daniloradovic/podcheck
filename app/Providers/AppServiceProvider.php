@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use Anthropic\Client as AnthropicClient;
 use App\Services\Checks\ChannelChecks\ArtworkCheck;
 use App\Services\Checks\ChannelChecks\AuthorCheck;
 use App\Services\Checks\ChannelChecks\CategoryCheck;
@@ -28,6 +29,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(AnthropicClient::class, function (): AnthropicClient {
+            return new AnthropicClient(
+                apiKey: (string) config('ai.anthropic.api_key'),
+            );
+        });
+
         $this->app->bind(FeedValidator::class, function ($app): FeedValidator {
             return new FeedValidator(
                 channelChecks: [

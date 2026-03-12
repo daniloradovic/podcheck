@@ -81,6 +81,7 @@ class FeedCheckController extends Controller
                     'checked_at' => now()->toIso8601String(),
                     'artwork_url' => $this->extractArtworkUrl($feed),
                     'total_episodes' => $this->countTotalEpisodes($feed),
+                    'metadata' => $this->extractMetadata($feed),
                     'summary' => $summary,
                     'health_score' => $healthScore->toArray(),
                     'seo_score' => $seoScore->toArray(),
@@ -198,6 +199,36 @@ class FeedCheckController extends Controller
         }
 
         return 0;
+    }
+
+    /**
+     * Extract raw feed metadata needed for the AI coach prompt.
+     *
+     * @return array{show_description: string|null, show_category: string|null}
+     */
+    private function extractMetadata(SimpleXMLElement $feed): array
+    {
+        $description = null;
+        $category = null;
+
+        if ($feed->getName() === 'rss' && isset($feed->channel)) {
+            $channel = $feed->channel;
+            $description = isset($channel->description)
+                ? ((string) $channel->description ?: null)
+                : null;
+
+            $itunes = $channel->children('itunes', true);
+            if (isset($itunes->category)) {
+                $attrs = $itunes->category->attributes();
+                $text = isset($attrs['text']) ? (string) $attrs['text'] : null;
+                $category = $text !== '' ? $text : null;
+            }
+        }
+
+        return [
+            'show_description' => $description,
+            'show_category' => $category,
+        ];
     }
 
     /**
