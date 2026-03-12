@@ -76,7 +76,7 @@ No streaming. JSON response. Cache-first.
     No migration needed (JSON column). Old reports without the key return `null` from `PodcastCoachService` gracefully.
   - *Commit: "Add Anthropic client configuration"*
 
-- [ ] **TASK 2** — Build CoachSummaryPrompt
+- [x] **TASK 2** — Build CoachSummaryPrompt
   - `app/AI/Prompts/CoachSummaryPrompt.php`
   - `version(): string` — start at `v1`
   - `system(): string` — "You are a podcast growth coach. Be specific to this show. Never give generic advice."
