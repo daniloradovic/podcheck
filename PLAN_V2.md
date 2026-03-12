@@ -61,7 +61,7 @@ No streaming. JSON response. Cache-first.
 
 #### Day 1 — Backend
 
-- [ ] **TASK 1** — Install Anthropic PHP client and configure
+- [x] **TASK 1** — Install Anthropic PHP client and configure
   - `composer require "anthropic-ai/sdk"`
   - Add `ANTHROPIC_API_KEY` to `.env.example`
   - Add `ai.php` config: model (`claude-haiku-4-5`), max_tokens, cache_ttl
