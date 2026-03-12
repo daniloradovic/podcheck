@@ -14,7 +14,7 @@ class RedirectToWww
     {
         if (app()->environment('production') && $request->getHost() === 'podcheck.dev') {
             return redirect()->to(
-                'https://www.podcheck.dev' . $request->getRequestUri(),
+                'https://www.podcheck.dev'.$request->getRequestUri(),
                 301
             );
         }

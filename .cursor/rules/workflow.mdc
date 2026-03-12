@@ -14,7 +14,8 @@ When asked to implement a task:
 4. **Implement the task**: Follow the architecture and patterns from project rules
 5. **Write tests**: Every new service/check gets Pest tests (see testing rules)
 6. **Run tests**: `php artisan test` — make sure nothing is broken
-7. **Commit**: Use conventional commit format
+7. **Run pint**: `./vendor/bin/pint` — fix all style issues before committing
+8. **Commit**: Use conventional commit format
 
 ## When implementing a validation check specifically:
 1. Read `app/Services/Checks/CheckInterface.php` for the contract
