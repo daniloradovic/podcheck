@@ -464,6 +464,9 @@
             </div>
         </div>
 
+        {{-- AI Coach Summary --}}
+        @include('partials.coach-summary')
+
         {{-- Category Score Cards --}}
         <div class="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
             @foreach ($categoryCards as $cardKey => $card)
