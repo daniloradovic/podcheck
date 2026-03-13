@@ -133,8 +133,8 @@ test('cache hit returns the cached value without calling the API', function () {
     $report = makeReport();
     $cachedSummary = 'This was previously cached.';
 
-    // Pre-warm the cache with the key the service will compute:
-    // md5(show_title + failing_check_names) = md5('The Tech Founders Show' + 'ArtworkChannel Description')
+    // Pre-warm the cache with the key the service will compute.
+    // Key format: coach:{version}:{md5(show_title + failing_check_names)}
     $prompt = new CoachSummaryPrompt;
     $cacheKey = 'coach:'.$prompt->version().':'.md5('The Tech Founders ShowArtworkChannel Description');
     Cache::put($cacheKey, $cachedSummary, 60);

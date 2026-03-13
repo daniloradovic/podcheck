@@ -120,7 +120,7 @@ No streaming. JSON response. Cache-first.
 
 #### Day 3 — Tune and Ship
 
-- [ ] **TASK 7** — Test with 10 real podcast feeds
+- [x] **TASK 7** — Test with 10 real podcast feeds
   - Range: low score/high score, B2B/entertainment/news, new show/established
   - Is each summary actually specific to that show, or does it feel generic?
   - Refine prompt if needed → bump to v2 → old cache auto-invalidates
