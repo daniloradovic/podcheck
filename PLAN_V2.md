@@ -94,7 +94,7 @@ No streaming. JSON response. Cache-first.
   - Feature test with mocked client: miss calls API, hit skips it
   - *Commit: "Add PodcastCoachService with cache-first logic"*
 
-- [ ] **TASK 4** — Endpoint and controller
+- [x] **TASK 4** — Endpoint and controller
   - `POST /report/{report}/ai/summary` → `AiSummaryController@generate`
   - Returns `{ summary: "..." }` or `{ summary: null }` on failure
   - Rate limit: 20 requests per IP per hour
