@@ -66,7 +66,12 @@ class PodcastCoachService
             }
 
             return null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            logger()->error('PodcastCoachService API failure', [
+                'message' => $e->getMessage(),
+                'class' => $e::class,
+            ]);
+
             return null;
         }
     }
