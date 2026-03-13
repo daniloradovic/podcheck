@@ -104,7 +104,7 @@ No streaming. JSON response. Cache-first.
 
 #### Day 2 — Frontend
 
-- [ ] **TASK 5** — Build the coach summary card
+- [x] **TASK 5** — Build the coach summary card
   - Blade partial: `resources/views/partials/coach-summary.blade.php`
   - Position: top of report page, above score breakdown
   - On page load, Alpine.js auto-fires `POST /ai/summary` (no user action needed)
