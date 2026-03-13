@@ -85,7 +85,7 @@ No streaming. JSON response. Cache-first.
   - Unit test: assert `build()` output contains show name from context
   - *Commit: "Add CoachSummaryPrompt v1"*
 
-- [ ] **TASK 3** — Build PodcastCoachService
+- [x] **TASK 3** — Build PodcastCoachService
   - `app/AI/PodcastCoachService.php`
   - `getSummary(FeedReport $report): ?string`
   - Cache key: `coach:v1:{md5(show_title + failing_check_names)}`
