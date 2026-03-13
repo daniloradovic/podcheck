@@ -111,7 +111,7 @@ No streaming. JSON response. Cache-first.
   - Three states: loading skeleton → summary text → hidden (on failure)
   - *Commit: "Add AI coach summary card to report page"*
 
-- [ ] **TASK 6** — Add `AI_FEATURES_ENABLED` env flag
+- [x] **TASK 6** — Add `AI_FEATURES_ENABLED` env flag
   - If false, card is not rendered, no API calls made
   - Safe on/off switch without a deploy
   - *Commit: "Add AI feature flag"*

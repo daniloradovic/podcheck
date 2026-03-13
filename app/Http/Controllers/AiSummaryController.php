@@ -16,6 +16,10 @@ class AiSummaryController extends Controller
 
     public function generate(FeedReport $report): JsonResponse
     {
+        if (! config('ai.enabled')) {
+            return response()->json(['summary' => null]);
+        }
+
         $summary = $this->coachService->getSummary($report);
 
         return response()->json(['summary' => $summary]);

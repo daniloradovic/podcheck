@@ -44,6 +44,8 @@ function makeSummaryReport(): FeedReport
 // ──────────────────────────────────────────────────
 
 test('returns summary when service returns a string', function () {
+    config(['ai.enabled' => true]);
+
     $report = makeSummaryReport();
     $expectedSummary = 'Your show about startup founders lacks artwork, which is the first thing Apple evaluates. Add a 3000x3000 image this week — it is the highest-impact fix you can make right now. Your topic and category are focused, which puts you ahead of generic business podcasts.';
 
@@ -63,6 +65,8 @@ test('returns summary when service returns a string', function () {
 // ──────────────────────────────────────────────────
 
 test('returns null summary when service returns null', function () {
+    config(['ai.enabled' => true]);
+
     $report = makeSummaryReport();
 
     $this->mock(PodcastCoachService::class)
@@ -91,6 +95,8 @@ test('returns 404 for non-existent report slug', function () {
 // ──────────────────────────────────────────────────
 
 test('response always contains the summary key', function () {
+    config(['ai.enabled' => true]);
+
     $report = makeSummaryReport();
 
     $this->mock(PodcastCoachService::class)
@@ -105,10 +111,30 @@ test('response always contains the summary key', function () {
 });
 
 // ──────────────────────────────────────────────────
+// POST /report/{report}/ai/summary — Feature flag
+// ──────────────────────────────────────────────────
+
+test('returns null summary immediately when AI_FEATURES_ENABLED is false', function () {
+    config(['ai.enabled' => false]);
+
+    $report = makeSummaryReport();
+
+    $this->mock(PodcastCoachService::class)
+        ->shouldNotReceive('getSummary');
+
+    $response = $this->postJson(route('report.ai.summary', $report));
+
+    $response->assertOk()
+        ->assertJson(['summary' => null]);
+});
+
+// ──────────────────────────────────────────────────
 // POST /report/{report}/ai/summary — Rate limiting
 // ──────────────────────────────────────────────────
 
 test('returns 429 after exceeding 20 requests per hour', function () {
+    config(['ai.enabled' => true]);
+
     RateLimiter::clear('');
 
     $report = makeSummaryReport();
