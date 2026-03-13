@@ -126,7 +126,7 @@ No streaming. JSON response. Cache-first.
   - Refine prompt if needed → bump to v2 → old cache auto-invalidates
   - *Commit: "Refine CoachSummaryPrompt based on real feed testing"*
 
-- [ ] **TASK 8** — Deploy to production
+- [x] **TASK 8** — Deploy to production
   - Add `ANTHROPIC_API_KEY` to Railway environment
   - Smoke test 3 real feeds live
   - *Commit: "Deploy Phase 2 AI coach summary"*
